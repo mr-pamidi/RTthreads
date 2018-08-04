@@ -1,23 +1,5 @@
-/*
- *
- *  Example by Sam Siewert 
- *
- *
- */
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
-#include <vector>
+
 #include "capture.hpp"
-#include "include.h"
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-
-//frame resolution
-#define FRAME_HRES 640
-#define FRAME_VRES 480
 
 //global variables
 extern pthread_cond_t cond_capture_thread;
@@ -35,14 +17,14 @@ CvCapture* capture;
 IplImage* frame;
 pthread_mutex_t frame_mutex_lock;
 
-void *capture_frames(void *cameraIdx)
+void *query_frames(void *cameraIdx)
 {
     int *dev = (int *)cameraIdx;
 
     capture = cvCreateCameraCapture(0);
     cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, FRAME_HRES);
     cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, FRAME_VRES);
-    cvNamedWindow("Capture Example", CV_WINDOW_AUTOSIZE);
+    cvNamedWindow(capture_window_title, CV_WINDOW_AUTOSIZE);
     
 
     while(1)
@@ -68,7 +50,7 @@ void *capture_frames(void *cameraIdx)
             syslog(LOG_WARNING," cvQueryframe done at :%lld", system_time);
         #endif
         
-        cvShowImage("Capture Example", frame);
+        cvShowImage(capture_window_title, frame);
             
         char c = cvWaitKey(1);
         if( c == 'q')
@@ -82,10 +64,10 @@ void *capture_frames(void *cameraIdx)
     }
 
     cvReleaseCapture(&capture);
-    cvDestroyWindow("Capture Example");
+    cvDestroyWindow(capture_window_title);
 
     #ifdef DEBUG_MODE_ON
-        syslog(LOG_WARNING," Capture Thread exiting...");
+        syslog(LOG_WARNING," query_frames() exiting...");
     #endif
         								
 };

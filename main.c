@@ -1,11 +1,9 @@
 /*
-
  *
  *    Nagarjuna Pamidi (a.k.a Arjun)
  *
  *    pthread trails
  *
-
  */
 
 #include "include.h"
@@ -25,7 +23,7 @@
 #define CAPTURE_THREAD_PRIORITY (SCHED_FIFO_MAX_PRIORITY + 1)  //sed as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 1))
 
 //global time variable, and a mutex to restrict access to it
-unsigned long long system_time=0;
+unsigned long long system_time = 0;
 pthread_mutex_t system_time_mutex_lock;
 
 pthread_cond_t cond_thread1 = PTHREAD_COND_INITIALIZER;
@@ -110,8 +108,8 @@ void *thread_dispatcher(void *something)
     sigevent_param.sigev_notify_attributes = &timer_thread_attr;
     
 //initialize timer period values
-    timer_period.it_value.tv_sec = (SYSTEM_TIMER_INTERVAL_IN_MSEC / MSEC_PER_SEC);
-    timer_period.it_value.tv_nsec = (SYSTEM_TIMER_INTERVAL_IN_MSEC * NSEC_PER_MSEC);
+    timer_period.it_value.tv_sec = (APP_TIMER_INTERVAL_IN_MSEC / MSEC_PER_SEC);
+    timer_period.it_value.tv_nsec = (APP_TIMER_INTERVAL_IN_MSEC * NSEC_PER_MSEC);
     timer_period.it_interval.tv_sec = timer_period.it_value.tv_sec;
     timer_period.it_interval.tv_nsec = timer_period.it_value.tv_nsec;
 
@@ -138,7 +136,7 @@ void *thread_dispatcher(void *something)
     pthread_create(&thread3, &thread3_attr, print_test, (void *)&thread3Idx );
     
     syslog(LOG_WARNING,"\n Capture Thread dispatching with priority ==> %d <==", capture_thread_sched_param.sched_priority);
-    pthread_create(&capture_thread, &capture_thread_attr, capture_frames, (void *)&capture_threadIdx );
+    pthread_create(&capture_thread, &capture_thread_attr, query_frames, (void *)&capture_threadIdx );
 
     
     pthread_join(capture_thread, NULL);
@@ -169,7 +167,7 @@ void timer_handler(union sigval arg)
 {
     pthread_mutex_lock(&system_time_mutex_lock);
     
-    system_time = system_time + SYSTEM_TIMER_INTERVAL_IN_MSEC; //update time every
+    system_time += APP_TIMER_INTERVAL_IN_MSEC; //update time periodically
     
     if(((system_time) % (MSEC_PER_SEC*7)) == 0)
     {
@@ -187,7 +185,7 @@ void timer_handler(union sigval arg)
     }
     
     //run at 30Hz
-    if((system_time % 33) == 0)
+    if((system_time % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0)
     {
         //signal capture thread..
         pthread_cond_signal(&cond_capture_thread);
@@ -210,7 +208,7 @@ void *print_test(void *threadIdx)
     threadParams_t *currentIdx = (threadParams_t *)threadIdx;
 
     sleep_delta_time.tv_sec = 0;
-    sleep_delta_time.tv_nsec = (SYSTEM_TIMER_INTERVAL_IN_MSEC * NSEC_PER_MSEC);
+    sleep_delta_time.tv_nsec = (APP_TIMER_INTERVAL_IN_MSEC * NSEC_PER_MSEC);
     
     
     while(1)

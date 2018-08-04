@@ -32,7 +32,11 @@
 #define NSEC_PER_MSEC   (1000*1000)        //nano seconds per milli seconds
 #define NSEC_PER_USEC   (1000)              //nano seconds per micro seconds
 
-#define SYSTEM_TIMER_INTERVAL_IN_MSEC   1 //timer period      
+//1000 Hz
+#define APP_TIMER_INTERVAL_IN_MSEC   1 //timer period      
+
+//30 Hz
+#define QUERY_FRAMES_INTERVAL_IN_MSEC    33 //frame query
 
 //as root do: "~./tegrastats" to find these CPU core numbers
 #define JETSON_TX2_ARM_CORE0    (0)
