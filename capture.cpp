@@ -10,10 +10,9 @@
 
 //global variables
 extern pthread_cond_t cond_query_frames_thread;
+extern pthread_cond_t cond_store_frames_thread;
 extern pthread_mutex_t system_time_mutex_lock;
 extern unsigned long long system_time;
-
-pthread_cond_t cond_store_frames = PTHREAD_COND_INITIALIZER;
 
 using namespace cv;
 using namespace std;
@@ -59,7 +58,7 @@ void *query_frames(void *cameraIdx)
 		if(counter_to_signal_store_frames >= 30)
 		{
 			counter_to_signal_store_frames = 0;
-			pthread_cond_signal(&cond_store_frames);
+			pthread_cond_signal(&cond_store_frames_thread);
 		}
 
 		pthread_mutex_unlock(&frame_mutex_lock);
@@ -117,7 +116,7 @@ void *store_frames(void *params)
 		#endif
 		//wait for signal
 		pthread_mutex_lock(&system_time_mutex_lock);
-		pthread_cond_wait(&cond_store_frames, &system_time_mutex_lock);
+		pthread_cond_wait(&cond_store_frames_thread, &system_time_mutex_lock);
         pthread_mutex_unlock(&system_time_mutex_lock);
 
 		#ifdef DEBUG_MODE_ON

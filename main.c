@@ -32,6 +32,7 @@ pthread_cond_t cond_thread1 = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_thread2 = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_thread3 = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
 
 //function prototyping
 void *print_test(void *threadIdx);
@@ -188,7 +189,7 @@ void timer_handler(union sigval arg)
 	if((system_time % MSEC_PER_SEC) == 0)
 	{
 		//signal store frames..
-        pthread_cond_signal(&cond_store_frames);
+        pthread_cond_signal(&cond_store_frames_thread);
 	}
 
     pthread_mutex_unlock(&system_time_mutex_lock);
