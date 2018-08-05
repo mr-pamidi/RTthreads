@@ -130,7 +130,7 @@ void *thread_dispatcher(void *something)
 	syslog(LOG_WARNING,"\n Timer starting with thread priority ==> %d <==", timer_thread_sched_param.sched_priority);
     rc = timer_settime(timer_id, 0, &timer_period, 0);
     assert (rc == 0);
-
+/*
 //create threads to test timer
     syslog(LOG_WARNING,"\n Thread:1 dispatching with priority ==> %d <==", thread1_sched_param.sched_priority);
     pthread_create(&thread1, &thread1_attr, print_test, (void *)&thread1Idx );
@@ -140,7 +140,7 @@ void *thread_dispatcher(void *something)
 
     syslog(LOG_WARNING,"\n Thread:3 dispatching with priority ==> %d <==", thread3_sched_param.sched_priority);
     pthread_create(&thread3, &thread3_attr, print_test, (void *)&thread3Idx );
-
+*/
     syslog(LOG_WARNING,"\n QUERY_FRAMES_THREAD dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
     pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
 
@@ -177,27 +177,19 @@ void timer_handler(union sigval arg)
 
     system_time += APP_TIMER_INTERVAL_IN_MSEC; //update time periodically
 
-    if(((system_time) % (MSEC_PER_SEC*7)) == 0)
-    {
-        pthread_cond_signal(&cond_thread1);
-    }
-
-    if(((system_time) % (MSEC_PER_SEC*3)) == 0)
-    {
-        pthread_cond_signal(&cond_thread2);
-    }
-
-    if(((system_time) % (MSEC_PER_SEC*5)) == 0)
-    {
-        pthread_cond_signal(&cond_thread3);
-    }
-
     //run at 30Hz
     if((system_time % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0)
     {
-        //signal capture thread..
+        //signal query frames thread..
         pthread_cond_signal(&cond_query_frames_thread);
     }
+
+	//1 Hz
+	if((system_time % MSEC_PER_SEC) == 0)
+	{
+		//signal store frames..
+        pthread_cond_signal(&cond_store_frames);
+	}
 
     pthread_mutex_unlock(&system_time_mutex_lock);
 

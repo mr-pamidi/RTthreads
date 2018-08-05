@@ -88,6 +88,9 @@ void *query_frames(void *cameraIdx)
     cvReleaseCapture(&capture);
     cvDestroyWindow(capture_window_title);
 
+	//destroy mutex lock!
+	pthread_mutex_destroy(&frame_mutex_lock);
+
     #ifdef DEBUG_MODE_ON
         syslog(LOG_WARNING," QUERY_FRAMES_THREAD exiting...");
     #endif
@@ -109,13 +112,16 @@ void *store_frames(void *params)
 
 	while(1)
 	{
+		#ifdef DEBUG_MODE_ON
+			syslog(LOG_WARNING, " store_frames waiting for signal at:%lld", system_time);
+		#endif
 		//wait for signal
-		pthread_mutex_lock(&frame_mutex_lock);
-		pthread_cond_wait(&cond_store_frames, &frame_mutex_lock);
-        pthread_mutex_unlock(&frame_mutex_lock);
+		pthread_mutex_lock(&system_time_mutex_lock);
+		pthread_cond_wait(&cond_store_frames, &system_time_mutex_lock);
+        pthread_mutex_unlock(&system_time_mutex_lock);
 
 		#ifdef DEBUG_MODE_ON
-			syslog(LOG_WARNING, " store_frames called at:%lld", system_time);
+			syslog(LOG_WARNING, " store_frames start write at:%lld", system_time);
 		#endif
 
 		mat = cvarrToMat(frame);
@@ -133,6 +139,11 @@ void *store_frames(void *params)
 	   }
 
 	   ++frame_counter;
+
+	   #ifdef DEBUG_MODE_ON
+		   syslog(LOG_WARNING, " store_frames end of write at:%lld", system_time);
+	   #endif
+
 	}
 
 }
