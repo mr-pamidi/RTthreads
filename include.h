@@ -3,8 +3,7 @@
 //
 //  File name: include.h
 //
-//
-//  Description: contains the globally used macros
+//  Description: Contains the globally used macros and variables
 //
 
 #ifndef _INCLUDE_H
@@ -33,7 +32,7 @@
 #define NSEC_PER_USEC   (1000)              //nano seconds per micro seconds
 
 //1000 Hz
-#define APP_TIMER_INTERVAL_IN_MSEC   1 //timer period      
+#define APP_TIMER_INTERVAL_IN_MSEC   1 //timer period
 
 //30 Hz
 #define QUERY_FRAMES_INTERVAL_IN_MSEC    33 //frame query

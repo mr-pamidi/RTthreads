@@ -1,10 +1,10 @@
-/*
- *
- *    Nagarjuna Pamidi (a.k.a Arjun)
- *
- *    pthread trails
- *
- */
+//
+//  Author: Nagarjuna Pamidi
+//
+//  File name: main.c
+//
+//  Description: Manages RT Threads and timer
+//
 
 #include "include.h"
 #include "utilities.h"

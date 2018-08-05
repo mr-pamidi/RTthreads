@@ -1,3 +1,10 @@
+//
+//  Author: Nagarjuna Pamidi
+//
+//  File name: capture.hpp
+//
+//  Description: Header file for capture.cpp
+//
 #ifndef _CAPTURE_HPP_
 #define _CAPTURE_HPP_
 
@@ -19,4 +26,3 @@ void *query_frames(void *cameraIdx);
 void *store_frames(void *params);
 
 #endif
-

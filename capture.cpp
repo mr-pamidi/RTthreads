@@ -1,4 +1,11 @@
 
+//
+//  Author: Nagarjuna Pamidi
+//
+//  File name: utilities.h
+//
+//  Description: Used for querying and storing the frames from the USB camera
+//
 #include "capture.hpp"
 
 //global variables

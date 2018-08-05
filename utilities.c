@@ -3,27 +3,13 @@
 //
 //  File name: utilities.c
 //
-//
-//  Description: This file contains frequently used function APIs
+//  Description: Frequently used function APIs
 //
 #include "include.h"
 #include "utilities.h"
 
-//initialize 
-jetson_tx2_cores jetson_tx2_cpu_cores;
-
-
-/*
-void initialize_posix_timer_param(timer_t *timer_id, void (*handler_func_ptr)(union sigval arg), const pthread_attr_t *handler_thread_attr, struct itimerspec *interval, unsigned int interval_in_millisec)
-{
-
-struct sigevent sigevent_param;
-
-  sigevent_param.sigev_notify = SIGEV_THREAD;
-  sigevent_param.sigev_value.sival_ptr = timer_id;
-  sigevent_param.sigev_notify_function = handler_func_ptr;
-  sigevent_param.sigev_notify_attributes = &handler_thread_attr;
-} */
+//initialize
+//jetson_tx2_cores jetson_tx2_cpu_cores;
 
 //------------------------------------------------------------------------------------------------------------------------------
 //  Function Name:  assign_RT_schedular_attr
@@ -59,9 +45,9 @@ void assign_RT_schedular_attr(pthread_attr_t *thread_attr, struct sched_param *s
     //assign priorty
     //***Note: The priorities are assigned as (RT_MAX - priority)
     sched_param->sched_priority = (sched_get_priority_max(rt_sched_policy) - thread_priority);
-    
+
     //validate that the thread_priority value is feasible or not
-    assert((sched_param->sched_priority >= sched_get_priority_min(rt_sched_policy)) && 
+    assert((sched_param->sched_priority >= sched_get_priority_min(rt_sched_policy)) &&
            (sched_param->sched_priority <= sched_get_priority_max(rt_sched_policy)));
 
     //set schedular with SCHED_FIFO scheme
@@ -180,7 +166,7 @@ void syslog_scheduler()
 //
 //------------------------------------------------------------------------------------------------------------------------------
 //Note: Make sure syslog is initialized, and not closed before calling this function
-//TBD: Make chanegs to this function as required. 
+//TBD: Make chanegs to this function as required.
 void syslog_time(unsigned int thread_id, const struct timespec *time)
 {
     syslog(LOG_INFO, "Thread: %d, syslog timestamp %ld:%ld",thread_id, time->tv_sec, time->tv_nsec);
@@ -337,35 +323,5 @@ struct timespec min_time(const struct timespec *time1, const struct timespec *ti
       return (*time2);
   }
 }
-
- /* old delta_t code
-    if(dt_sec >= 0)
-    {
-        if(dt_nsec >= 0)
-        {
-            delta_t->tv_sec=dt_sec;
-            delta_t->tv_nsec=dt_nsec;
-        }
-        else
-        {
-            delta_t->tv_sec=dt_sec-1;
-            delta_t->tv_nsec=NSEC_PER_SEC+dt_nsec;
-        }
-    }
-    else
-    {
-        if(dt_nsec >= 0)
-        {
-            delta_t->tv_sec=dt_sec;
-            delta_t->tv_nsec=dt_nsec;
-        }
-        else
-        {
-            delta_t->tv_sec=dt_sec-1;
-            delta_t->tv_nsec=NSEC_PER_SEC+dt_nsec;
-        }
-    }
-} */
-
 
 // End of file!

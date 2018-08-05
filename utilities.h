@@ -3,8 +3,7 @@
 //
 //  File name: utilities.h
 //
-//
-//  Description: utilities.c header file
+//  Description: Header file for utilities.c
 //
 
 #ifndef _UTILITIES_H
