@@ -12,7 +12,7 @@
 
 //global time variable, and a mutex to restrict access to it
 unsigned long long app_timer_counter = 0;
-pthread_mutex_t app_timer_counter_mutex_lock = PTHREAD_MUTEX_ERRORCHECK;
+pthread_mutex_t app_timer_counter_mutex_lock;// = PTHREAD_MUTEX_ERRORCHECK;
 
 pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
