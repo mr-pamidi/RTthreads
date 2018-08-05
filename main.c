@@ -189,6 +189,7 @@ void timer_handler(union sigval arg)
 	if((system_time % MSEC_PER_SEC) == 0)
 	{
 		//signal store frames..
+		syslog(LOG_WARNING," Calling store_frames at:%lld", system_time);
         pthread_cond_signal(&cond_store_frames_thread);
 	}
 

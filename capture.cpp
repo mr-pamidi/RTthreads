@@ -37,9 +37,8 @@ void *query_frames(void *cameraIdx)
 
     while(1)
     {
-
-        pthread_mutex_lock(&system_time_mutex_lock);
         //wait for signal
+        pthread_mutex_lock(&system_time_mutex_lock);
         pthread_cond_wait(&cond_query_frames_thread, &system_time_mutex_lock);
         pthread_mutex_unlock(&system_time_mutex_lock);
 
@@ -98,9 +97,6 @@ void *store_frames(void *params)
 
 	while(1)
 	{
-		#ifdef DEBUG_MODE_ON
-			syslog(LOG_WARNING, " store_frames waiting for signal at:%lld", system_time);
-		#endif
 		//wait for signal
 		pthread_mutex_lock(&system_time_mutex_lock);
 		pthread_cond_wait(&cond_store_frames_thread, &system_time_mutex_lock);
