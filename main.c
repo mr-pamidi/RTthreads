@@ -127,6 +127,7 @@ void *thread_dispatcher(void *something)
     assert(rc == 0);
 
 //start timer
+	syslog(LOG_WARNING,"\n Timer starting with thread priority ==> %d <==", timer_thread_sched_param.sched_priority);
     rc = timer_settime(timer_id, 0, &timer_period, 0);
     assert (rc == 0);
 
@@ -143,7 +144,7 @@ void *thread_dispatcher(void *something)
     syslog(LOG_WARNING,"\n QUERY_FRAMES_THREAD dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
     pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
 
-	syslog(LOG_WARNING,"\n Store frames Thread dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
+	syslog(LOG_WARNING,"\n STORE_FRAMES_THREAD dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
 	pthread_create(&store_frames_thread, &store_frames_thread_attr, store_frames, (void *)&store_frames_threadIdx);
 
     pthread_join(query_frames_thread, NULL);

@@ -30,6 +30,8 @@ void *query_frames(void *cameraIdx)
 {
     int *dev = (int *)cameraIdx;
 
+	unsigned int counter_to_signal_store_frames=0;
+
     capture = cvCreateCameraCapture(0);
     cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, FRAME_HRES);
     cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, FRAME_VRES);
@@ -54,8 +56,9 @@ void *query_frames(void *cameraIdx)
 		frame = cvQueryFrame(capture);
 
 		//signal store_frames
-		if((system_time % MSEC_PER_SEC) == 0)
+		if(counter_to_signal_store_frames >= 30)
 		{
+			counter_to_signal_store_frames = 0;
 			pthread_cond_signal(&cond_store_frames);
 		}
 
@@ -79,13 +82,14 @@ void *query_frames(void *cameraIdx)
             //syslog(LOG_WARNING," cvShowImage done at :%lld", system_time);
         #endif
 
+		++counter_to_signal_store_frames;
     }
 
     cvReleaseCapture(&capture);
     cvDestroyWindow(capture_window_title);
 
     #ifdef DEBUG_MODE_ON
-        syslog(LOG_WARNING," query_frames() exiting...");
+        syslog(LOG_WARNING," QUERY_FRAMES_THREAD exiting...");
     #endif
 
 };
@@ -105,6 +109,7 @@ void *store_frames(void *params)
 
 	while(1)
 	{
+		//wait for signal
 		pthread_mutex_lock(&frame_mutex_lock);
 		pthread_cond_wait(&cond_store_frames, &frame_mutex_lock);
         pthread_mutex_unlock(&frame_mutex_lock);
