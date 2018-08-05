@@ -10,33 +10,15 @@
 #include "utilities.h"
 #include "capture.hpp"
 
-#define THREAD1         (1)
-#define THREAD2         (2)
-#define THREAD3         (3)
-#define QUERY_FRAMES_THREAD  	(4)
-#define STORE_FRAMES_THREAD		(5)
-
-//Note: In this application, 0 is the RT MAX priority..
-//..the assign_RT_scheduler_attr() function internally converts 0 to RT_MAX, and similar
-#define THREAD1_PRIORITY        (SCHED_FIFO_MAX_PRIORITY + 10) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 10))
-#define THREAD2_PRIORITY        (SCHED_FIFO_MAX_PRIORITY + 10) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 10))
-#define THREAD3_PRIORITY        (SCHED_FIFO_MAX_PRIORITY + 10) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 10))
-#define QUERY_FRAMES_THREAD_PRIORITY	(SCHED_FIFO_MAX_PRIORITY + 2)  //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 1))
-#define STORE_FRAMES_THREAD_PRIORITY	(SCHED_FIFO_MAX_PRIORITY + 1)  //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 2))
-
 //global time variable, and a mutex to restrict access to it
-unsigned long long system_time = 0;
-pthread_mutex_t system_time_mutex_lock;
+unsigned long long app_timer_counter = 0;
+pthread_mutex_t app_timer_counter_mutex_lock = PTHREAD_MUTEX_ERRORCHECK;
 
-pthread_cond_t cond_thread1 = PTHREAD_COND_INITIALIZER;
-pthread_cond_t cond_thread2 = PTHREAD_COND_INITIALIZER;
-pthread_cond_t cond_thread3 = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
 
 //function prototyping
-void *print_test(void *threadIdx);
-void *thread_dispatcher(void *something);
+void *rt_thread_dispatcher_handler(void *something);
 void timer_handler(union sigval arg);
 
 //**********************************
@@ -44,40 +26,42 @@ void timer_handler(union sigval arg);
 //**********************************
 int main( int argc, char** argv )
 {
-    pthread_t main_thread;
-    pthread_attr_t main_thread_sched_attr;
-    struct sched_param main_thread_sched_param;
+	int rc = 0;
+	pthread_t rt_thread_dispatcher;
+    pthread_attr_t rt_thread_dispatcher_sched_attr;
+    struct sched_param rt_thread_dispatcher_sched_param;
 
     //syslogs
     initialize_syslogs();
 
-    assign_RT_schedular_attr(&main_thread_sched_attr, &main_thread_sched_param, SCHED_FIFO, SCHED_FIFO_MAX_PRIORITY+5, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
+    assign_RT_schedular_attr(&rt_thread_dispatcher_sched_attr, &rt_thread_dispatcher_sched_param, SCHED_FIFO, RT_THREAD_DISPATCHER_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
 
-    syslog(LOG_WARNING, "RT dispatcher thread dispatching with priority ==> %d <==", main_thread_sched_param.sched_priority);
-    pthread_create(&main_thread, &main_thread_sched_attr, thread_dispatcher, (void *)0 );
+    syslog(LOG_WARNING, "RT dispatcher thread dispatching with priority ==> %d <==", rt_thread_dispatcher_sched_param.sched_priority);
+    rc = pthread_create(&rt_thread_dispatcher, &rt_thread_dispatcher_sched_attr, rt_thread_dispatcher_handler, (void *)0 );
+	assert (rc == SUCCESS);
 
     //wait for main thread to finish execution
-    pthread_join(main_thread, NULL);
-
+    pthread_join(rt_thread_dispatcher, NULL);
 
     //syslog(LOG_WARNING, "End of user log!");
     closelog();
 
+	//print to terminal
     printf("Exiting..!\n");
     return 0;
 }
 
 
 //*****************************************
-//  Funcation Name:     thread_dispatcher
+//  Funcation Name:     rt_thread_dispatcher_handler
 //*****************************************
-void *thread_dispatcher(void *something)
+void *rt_thread_dispatcher_handler(void *something)
 {
     int rc;
-    pthread_t thread1, thread2, thread3, query_frames_thread, store_frames_thread;
-    pthread_attr_t thread1_attr, thread2_attr, thread3_attr, query_frames_thread_attr, store_frames_thread_attr;
-    threadParams_t thread1Idx, thread2Idx, thread3Idx, query_frames_threadIdx, store_frames_threadIdx;
-    struct sched_param thread1_sched_param, thread2_sched_param, thread3_sched_param, query_frames_thread_sched_param, store_frames_thread_sched_param;
+    pthread_t query_frames_thread, store_frames_thread;
+    pthread_attr_t query_frames_thread_attr, store_frames_thread_attr;
+    threadParams_t query_frames_threadIdx, store_frames_threadIdx;
+    struct sched_param query_frames_thread_sched_param, store_frames_thread_sched_param;
 
     //posix timer parameters
     struct sigevent sigevent_param;
@@ -86,86 +70,70 @@ void *thread_dispatcher(void *something)
     pthread_attr_t timer_thread_attr;
     struct sched_param timer_thread_sched_param;
 
-
-    thread1Idx.threadIdx = 1;
-    thread2Idx.threadIdx = 2;
-    thread3Idx.threadIdx = 3;
-    query_frames_threadIdx.threadIdx = 4;
-	store_frames_threadIdx.threadIdx = 5;
+	//assign thread indexes to keep track
+    query_frames_threadIdx.threadIdx = QUERY_FRAMES_THREAD_IDX;
+	store_frames_threadIdx.threadIdx = STORE_FRAMES_THREAD_IDX;
 
     //assign RT scheduler attributes
-    assign_RT_schedular_attr(&thread1_attr, &thread1_sched_param, SCHED_FIFO, THREAD1_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
-    assign_RT_schedular_attr(&thread2_attr, &thread2_sched_param, SCHED_FIFO, THREAD2_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
-    assign_RT_schedular_attr(&thread3_attr, &thread3_sched_param, SCHED_FIFO, THREAD3_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
-    assign_RT_schedular_attr(&query_frames_thread_attr, &query_frames_thread_sched_param, SCHED_FIFO, QUERY_FRAMES_THREAD_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
+	assign_RT_schedular_attr(&query_frames_thread_attr, &query_frames_thread_sched_param, SCHED_FIFO, QUERY_FRAMES_THREAD_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
 	assign_RT_schedular_attr(&store_frames_thread_attr, &store_frames_thread_sched_param, SCHED_FIFO, STORE_FRAMES_THREAD_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
 
-#ifdef DEBUG_MODE_ON
+	#ifdef DEBUG_MODE_ON
     syslog_scheduler();
-#endif
+	#endif //DEBUG_MODE_ON
 
-//initialize timer thread attributes
+	//initialize timer thread attributes
     assign_RT_schedular_attr(&timer_thread_attr, &timer_thread_sched_param, SCHED_FIFO, SCHED_FIFO_MAX_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
 
-//assign sigevent paramaters for the timer
+	//assign sigevent paramaters for the timer
     sigevent_param.sigev_notify = SIGEV_THREAD;
     sigevent_param.sigev_value.sival_ptr = &timer_id;
     sigevent_param.sigev_notify_function = &timer_handler;
     sigevent_param.sigev_notify_attributes = &timer_thread_attr;
 
-//initialize timer period values
+	//initialize timer period values
     timer_period.it_interval.tv_sec = (APP_TIMER_INTERVAL_IN_MSEC / MSEC_PER_SEC);
     timer_period.it_interval.tv_nsec = (APP_TIMER_INTERVAL_IN_MSEC * NSEC_PER_MSEC);
-    timer_period.it_value.tv_sec = timer_period.it_interval.tv_sec + 2; //delay before to start
+    timer_period.it_value.tv_sec = timer_period.it_interval.tv_sec + 2; //2 seconds delay before start
     timer_period.it_value.tv_nsec = timer_period.it_interval.tv_nsec;
 
-//create timer
+	//create timer
     rc = timer_create(CLOCK_REALTIME, &sigevent_param, &timer_id);
-    assert (rc == 0);
+    assert (rc == SUCCESS);
 
-//initilize mutex to protect timer count variable
-    rc = pthread_mutex_init(&system_time_mutex_lock, NULL);
-    assert(rc == 0);
+	//initilize mutex to protect timer count variable
+    rc = pthread_mutex_init(&app_timer_counter_mutex_lock, NULL);
+    assert(rc == SUCCESS);
 
-//start timer
+	//start timer
 	syslog(LOG_WARNING,"\n Timer starting with thread priority ==> %d <==", timer_thread_sched_param.sched_priority);
     rc = timer_settime(timer_id, 0, &timer_period, 0);
-    assert (rc == 0);
-/*
-//create threads to test timer
-    syslog(LOG_WARNING,"\n Thread:1 dispatching with priority ==> %d <==", thread1_sched_param.sched_priority);
-    pthread_create(&thread1, &thread1_attr, print_test, (void *)&thread1Idx );
+    assert (rc == SUCCESS);
 
-    syslog(LOG_WARNING,"\n Thread:2 dispatching with priority ==> %d <==", thread2_sched_param.sched_priority);
-    pthread_create(&thread2, &thread2_attr, print_test, (void *)&thread2Idx );
-
-    syslog(LOG_WARNING,"\n Thread:3 dispatching with priority ==> %d <==", thread3_sched_param.sched_priority);
-    pthread_create(&thread3, &thread3_attr, print_test, (void *)&thread3Idx );
-*/
+	//create query_frames_thread
     syslog(LOG_WARNING,"\n QUERY_FRAMES_THREAD dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
-    pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
+    rc = pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
+	assert (rc == SUCCESS);
 
+	//create store_frames_thread
 	syslog(LOG_WARNING,"\n STORE_FRAMES_THREAD dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
-	pthread_create(&store_frames_thread, &store_frames_thread_attr, store_frames, (void *)&store_frames_threadIdx);
+	rc = pthread_create(&store_frames_thread, &store_frames_thread_attr, store_frames, (void *)&store_frames_threadIdx);
+	assert (rc == SUCCESS);
 
+	//wait fot query_frames_thread to exit
     pthread_join(query_frames_thread, NULL);
 
-    //wait for threads to join
-    //pthread_join( thread1, NULL);
-    //pthread_join( thread2, NULL);
-    //pthread_join( thread3, NULL);
-
-//stop timer
+	//stop timer
     timer_period.it_interval.tv_sec = 0;
     timer_period.it_interval.tv_nsec = 0;
     rc = timer_settime(timer_id, 0, &timer_period, 0);
-    assert (rc == 0);
+    assert (rc == SUCCESS);
 
-//destroy mutex lock
-    pthread_mutex_destroy(&system_time_mutex_lock);
-
+	//destroy mutex lock
+    pthread_mutex_destroy(&app_timer_counter_mutex_lock);
+	//add a log
     syslog(LOG_WARNING," RT Dispatcher thread exiting...");
-
+	//exit thread
     pthread_exit(NULL);
 }
 
@@ -174,120 +142,27 @@ void *thread_dispatcher(void *something)
 //*****************************************
 void timer_handler(union sigval arg)
 {
-    pthread_mutex_lock(&system_time_mutex_lock);
-
-    system_time += APP_TIMER_INTERVAL_IN_MSEC; //update time periodically
+	//accquire mutex lock on timer counter variable
+    pthread_mutex_lock(&app_timer_counter_mutex_lock);
+	//update timer counter
+    app_timer_counter += APP_TIMER_INTERVAL_IN_MSEC;
 
     //run at 30Hz
-    if((system_time % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0)
+    if((app_timer_counter % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0)
     {
-        //signal query frames thread..
+        //signal  query_frames_thread function handler..
         pthread_cond_signal(&cond_query_frames_thread);
     }
-
-	//1 Hz
-	if((system_time % MSEC_PER_SEC) == 0)
+	//run at 1 Hz
+	if((app_timer_counter % STORE_FRAMES_INTERVAL_IN_MSEC) == 0)
 	{
-		//signal store frames..
-		syslog(LOG_WARNING," Calling store_frames at:%lld", system_time);
+		//signal store_frames_thread function handler..
         pthread_cond_signal(&cond_store_frames_thread);
 	}
-
-    pthread_mutex_unlock(&system_time_mutex_lock);
-
-    //syslog(LOG_WARNING, " timer_handler called at %lld", system_time);
+	//relinquish mutex lock on timer counter variable
+    pthread_mutex_unlock(&app_timer_counter_mutex_lock);
 }
 
-
-//*****************************************
-//  Funcation Name:     print_test
-//*****************************************
-void *print_test(void *threadIdx)
-{
-    int rc;
-    volatile long loopCounter=0;
-    struct timespec log_time, sleep_delta_time;
-    threadParams_t *currentIdx = (threadParams_t *)threadIdx;
-
-    sleep_delta_time.tv_sec = 0;
-    sleep_delta_time.tv_nsec = (APP_TIMER_INTERVAL_IN_MSEC * NSEC_PER_MSEC);
-
-
-    while(1)
-    {
-        //yield before proceeding further
-        //so that other thread will get a chance to run as well..
-        //pthread_yield();
-
-        pthread_mutex_lock(&system_time_mutex_lock);
-
-
-        if(currentIdx->threadIdx == THREAD1) //high priority task
-        {
-            pthread_cond_wait(&cond_thread1, &system_time_mutex_lock);
-
-            //if((system_time % (30)) == 0)
-            {
-                #ifdef DEBUG_MODE_ON
-//                syslog(LOG_WARNING," Thread:%d, timer:%lld", (int)currentIdx->threadIdx, system_time);
-                #endif
-
-                //if((loopCounter++) >= 10) break;
-                //rc = nanosleep(&sleep_delta_time, NULL);
-                //assert(rc == 0);
-            }
-
-        }
-
-        else if(currentIdx->threadIdx == THREAD2) //mid priority thread
-        {
-            pthread_cond_wait(&cond_thread2, &system_time_mutex_lock);
-
-            //if((system_time % (20)) == 0)
-            {
-                #ifdef DEBUG_MODE_ON
-//                    syslog(LOG_WARNING," Thread:%d, timer:%lld", (int)currentIdx->threadIdx, system_time);
-                #endif
-                //if((loopCounter++) >= 10) break;
-                //rc = nanosleep(&sleep_delta_time, NULL);
-                //assert(rc == 0);
-            }
-        }
-
-        else if(currentIdx->threadIdx == THREAD3) //low priority thread
-        {
-            pthread_cond_wait(&cond_thread3, &system_time_mutex_lock);
-
-            //if((system_time % (10)) == 0)
-            {
-                #ifdef DEBUG_MODE_ON
-//                    syslog(LOG_WARNING," Thread:%d, timer:%lld", (int)currentIdx->threadIdx, system_time);
-                #endif
-                //if((loopCounter++) >= 10) break;
-                //rc = nanosleep(&sleep_delta_time, NULL);
-                //assert(rc == 0);
-            }
-        }
-
-        else
-        {
-            printf("\nUn-known thread!");
-            exit(-1);
-        }
-
-        pthread_mutex_unlock(&system_time_mutex_lock);
-    }
-
-
-#ifdef DEBUG_MODE_ON
-    //collect current time
-    //clock_gettime(CLOCK_REALTIME, &log_time);
-    //syslog_time((int)currentIdx->threadIdx, &log_time);
-#endif
-
-    //after exiting the loop, log the following message!
-    syslog(LOG_WARNING,"\n  ===> Thread:%d <=== done! Loop count:%ld", (int)currentIdx->threadIdx, loopCounter);
-
-}
-
-//End of file!
+//==============================================================================
+//	End of file!
+//==============================================================================

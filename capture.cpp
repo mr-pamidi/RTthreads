@@ -11,8 +11,8 @@
 //global variables
 extern pthread_cond_t cond_query_frames_thread;
 extern pthread_cond_t cond_store_frames_thread;
-extern pthread_mutex_t system_time_mutex_lock;
-extern unsigned long long system_time;
+extern pthread_mutex_t app_timer_counter_mutex_lock;
+extern unsigned long long app_timer_counter;
 
 using namespace cv;
 using namespace std;
@@ -38,12 +38,12 @@ void *query_frames(void *cameraIdx)
     while(1)
     {
         //wait for signal
-        pthread_mutex_lock(&system_time_mutex_lock);
-        pthread_cond_wait(&cond_query_frames_thread, &system_time_mutex_lock);
-        pthread_mutex_unlock(&system_time_mutex_lock);
+        pthread_mutex_lock(&app_timer_counter_mutex_lock);
+        pthread_cond_wait(&cond_query_frames_thread, &app_timer_counter_mutex_lock);
+        pthread_mutex_unlock(&app_timer_counter_mutex_lock);
 
         #ifdef DEBUG_MODE_ON
-            //syslog(LOG_WARNING," cvQueryframe start at :%lld", system_time);
+            //syslog(LOG_WARNING," cvQueryframe start at :%lld", app_timer_counter);
         #endif
 
         //thread safe
@@ -54,7 +54,7 @@ void *query_frames(void *cameraIdx)
         if(!frame) break;
 
         #ifdef DEBUG_MODE_ON
-            //syslog(LOG_WARNING," cvQueryframe done at :%lld", system_time);
+            //syslog(LOG_WARNING," cvQueryframe done at :%lld", app_timer_counter);
         #endif
 
         cvShowImage(capture_window_title, frame);
@@ -66,7 +66,7 @@ void *query_frames(void *cameraIdx)
         }
 
         #ifdef DEBUG_MODE_ON
-            //syslog(LOG_WARNING," cvShowImage done at :%lld", system_time);
+            //syslog(LOG_WARNING," cvShowImage done at :%lld", app_timer_counter);
         #endif
     }
 
@@ -98,13 +98,13 @@ void *store_frames(void *params)
 	while(1)
 	{
 		//wait for signal
-		pthread_mutex_lock(&system_time_mutex_lock);
-		pthread_cond_wait(&cond_store_frames_thread, &system_time_mutex_lock);
-        pthread_mutex_unlock(&system_time_mutex_lock);
+		pthread_mutex_lock(&app_timer_counter_mutex_lock);
+		pthread_cond_wait(&cond_store_frames_thread, &app_timer_counter_mutex_lock);
+        pthread_mutex_unlock(&app_timer_counter_mutex_lock);
 
 
 		#ifdef DEBUG_MODE_ON
-			syslog(LOG_WARNING, " store_frames start write at:%lld", system_time);
+			syslog(LOG_WARNING, " store_frames start write at:%lld", app_timer_counter);
 		#endif
 
 		//make sure other threads are not updating frames at this moment
@@ -127,9 +127,13 @@ void *store_frames(void *params)
 	   	++frame_counter;
 
 	   	#ifdef DEBUG_MODE_ON
-			syslog(LOG_WARNING, " store_frames end of write at:%lld", system_time);
+			syslog(LOG_WARNING, " store_frames end of write at:%lld", app_timer_counter);
 	   	#endif
 
 	}
 
 }
+
+//==============================================================================
+//	End of file!
+//==============================================================================

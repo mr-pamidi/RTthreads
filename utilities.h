@@ -23,3 +23,7 @@ struct timespec max_time(const struct timespec *time1, const struct timespec *ti
 struct timespec min_time(const struct timespec *time1, const struct timespec *time2);
 
 #endif
+
+//==============================================================================
+//	End of file!
+//==============================================================================
