@@ -21,8 +21,8 @@
 #define THREAD1_PRIORITY        (SCHED_FIFO_MAX_PRIORITY + 10) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 10))
 #define THREAD2_PRIORITY        (SCHED_FIFO_MAX_PRIORITY + 10) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 10))
 #define THREAD3_PRIORITY        (SCHED_FIFO_MAX_PRIORITY + 10) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 10))
-#define QUERY_FRAMES_THREAD_PRIORITY	(SCHED_FIFO_MAX_PRIORITY + 1)  //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 1))
-#define STORE_FRAMES_THREAD_PRIORITY	(SCHED_FIFO_MAX_PRIORITY + 2)  //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 2))
+#define QUERY_FRAMES_THREAD_PRIORITY	(SCHED_FIFO_MAX_PRIORITY + 2)  //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 1))
+#define STORE_FRAMES_THREAD_PRIORITY	(SCHED_FIFO_MAX_PRIORITY + 1)  //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 2))
 
 //global time variable, and a mutex to restrict access to it
 unsigned long long system_time = 0;
@@ -114,10 +114,10 @@ void *thread_dispatcher(void *something)
     sigevent_param.sigev_notify_attributes = &timer_thread_attr;
 
 //initialize timer period values
-    timer_period.it_value.tv_sec = (APP_TIMER_INTERVAL_IN_MSEC / MSEC_PER_SEC);
-    timer_period.it_value.tv_nsec = (APP_TIMER_INTERVAL_IN_MSEC * NSEC_PER_MSEC);
-    timer_period.it_interval.tv_sec = timer_period.it_value.tv_sec;
-    timer_period.it_interval.tv_nsec = timer_period.it_value.tv_nsec;
+    timer_period.it_interval.tv_sec = (APP_TIMER_INTERVAL_IN_MSEC / MSEC_PER_SEC);
+    timer_period.it_interval.tv_nsec = (APP_TIMER_INTERVAL_IN_MSEC * NSEC_PER_MSEC);
+    timer_period.it_value.tv_sec = timer_period.it_interval.tv_sec + 2; //delay before to start
+    timer_period.it_value.tv_nsec = timer_period.it_interval.tv_nsec;
 
 //create timer
     rc = timer_create(CLOCK_REALTIME, &sigevent_param, &timer_id);

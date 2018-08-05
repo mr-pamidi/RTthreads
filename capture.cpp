@@ -119,29 +119,33 @@ void *store_frames(void *params)
 		pthread_cond_wait(&cond_store_frames_thread, &system_time_mutex_lock);
         pthread_mutex_unlock(&system_time_mutex_lock);
 
+
 		#ifdef DEBUG_MODE_ON
 			syslog(LOG_WARNING, " store_frames start write at:%lld", system_time);
 		#endif
 
+		//make sure other threads are not updating frames at this moment
+		pthread_mutex_lock(&frame_mutex_lock);
 		mat = cvarrToMat(frame);
+	    pthread_mutex_unlock(&frame_mutex_lock);
 
 		sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);
 
-	   try
-	   {
-		   imwrite(ppm_file_name, mat, compression_params);
-	   }
-	   catch (runtime_error& ex)
-	   {
-		   syslog(LOG_ERR, " ***Exception converting image to PNG format:");
-		   exit(ERROR);
-	   }
+	   	try
+	   	{
+			imwrite(ppm_file_name, mat, compression_params);
+	   	}
+	   	catch (runtime_error& ex)
+	   	{
+			syslog(LOG_ERR, " ***Exception converting image to PNG format:");
+			exit(ERROR);
+	   	}
 
-	   ++frame_counter;
+	   	++frame_counter;
 
-	   #ifdef DEBUG_MODE_ON
-		   syslog(LOG_WARNING, " store_frames end of write at:%lld", system_time);
-	   #endif
+	   	#ifdef DEBUG_MODE_ON
+			syslog(LOG_WARNING, " store_frames end of write at:%lld", system_time);
+	   	#endif
 
 	}
 
