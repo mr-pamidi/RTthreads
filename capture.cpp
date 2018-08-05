@@ -50,8 +50,15 @@ void *query_frames(void *cameraIdx)
 
         //thread safe
         pthread_mutex_lock(&frame_mutex_lock);
-        frame = cvQueryFrame(capture);
-		pthread_cond_signal(&cond_store_frames); //signal to store current file..
+
+		frame = cvQueryFrame(capture);
+
+		//signal store_frames
+		if((system_time % MSEC_PER_SEC) == 0)
+		{
+			pthread_cond_signal(&cond_store_frames);
+		}
+
 		pthread_mutex_unlock(&frame_mutex_lock);
 
         if(!frame) break;
@@ -72,7 +79,6 @@ void *query_frames(void *cameraIdx)
             syslog(LOG_WARNING," cvShowImage done at :%lld", system_time);
         #endif
 
-		break;
     }
 
     cvReleaseCapture(&capture);
@@ -91,8 +97,12 @@ void *store_frames(void *params)
     vector<int> compression_params;
     compression_params.push_back(CV_IMWRITE_PXM_BINARY);
     compression_params.push_back(1);
+	unsigned int frame_counter=0;
+
+	char ppm_file_name[20] ={};
 
     Mat mat;
+	
 	while(1)
 	{
 		pthread_mutex_lock(&frame_mutex_lock);
@@ -101,15 +111,19 @@ void *store_frames(void *params)
 
 		mat = cvarrToMat(frame);
 
+		sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);
+
 	   try
 	   {
-		   imwrite("alpha.ppm", mat, compression_params);
+		   imwrite(ppm_file_name, mat, compression_params);
 	   }
 	   catch (runtime_error& ex)
 	   {
 		   syslog(LOG_ERR, " ***Exception converting image to PNG format:");
 		   exit(ERROR);
 	   }
+
+	   ++frame_counter;
 	}
 
 }
