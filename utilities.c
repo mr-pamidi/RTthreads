@@ -61,10 +61,6 @@ void assign_RT_schedular_attr(pthread_attr_t *thread_attr, struct sched_param *s
     //set scheduling paramater to the thread
     rc = pthread_attr_setschedparam(thread_attr, sched_param);
     assert(rc == 0);
-
-#ifdef DEBUG_MODE_ON
-//    syslog_scheduler();
-#endif
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -338,28 +334,28 @@ void validate_pthread_mutex_lock_status(const char *mutex_lock_name, const int r
 	switch(rc)
 	{
 		case EINVAL:
-			syslog(LOG_ERR, " Error acquiring %s, Error ID:EINVAL", *mutex_lock_name);
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EINVAL", mutex_lock_name);
 			exit(ERROR);
 			break;
 
 		case EBUSY:
-			syslog(LOG_ERR, " Error acquiring %s, Error ID:EBUSY", *mutex_lock_name);
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EBUSY", mutex_lock_name);
 			break;
 
 		case EAGAIN:
-			syslog(LOG_ERR, " Error acquiring %s, Error ID:EAGAIN", *mutex_lock_name);
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EAGAIN", mutex_lock_name);
 			break;
 
 		case EDEADLK:
-			syslog(LOG_ERR, " Error acquiring %s, Error ID:EDEADLK", *mutex_lock_name);
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EDEADLK", mutex_lock_name);
 			break;
 
 		case EPERM:
-			syslog(LOG_ERR, " Error acquiring %s, Error ID:EPERM", *mutex_lock_name);
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EPERM", mutex_lock_name);
 			break;
 
 		default:
-			syslog(LOG_ERR, " Unknown error acquiring %s, Error ID:%d", *mutex_lock_name, rc);
+			syslog(LOG_ERR, " Unknown error acquiring %s, Error ID:%d", mutex_lock_name, rc);
 			exit(ERROR);
 			break;
 	}
@@ -382,24 +378,24 @@ void validate_pthread_mutex_unlock_status(const char *mutex_lock_name, const int
 	switch(rc)
 	{
 		case EINVAL:
-			syslog(LOG_ERR, " Error acquiring %s, Error ID:EINVAL", *mutex_lock_name);
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EINVAL", mutex_lock_name);
 			exit(ERROR);
 			break;
 
 		case EAGAIN:
-			syslog(LOG_ERR, " Error acquiring %s, Error ID:EAGAIN", *mutex_lock_name);
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EAGAIN", mutex_lock_name);
 			break;
 
 		case EDEADLK:
-			syslog(LOG_ERR, " Error acquiring %s, Error ID:EDEADLK", *mutex_lock_name);
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EDEADLK", mutex_lock_name);
 			break;
 
 		case EPERM:
-			syslog(LOG_ERR, " Error acquiring %s, Error ID:EPERM", *mutex_lock_name);
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EPERM", mutex_lock_name);
 			break;
 
 		default:
-			syslog(LOG_ERR, " Unknown error acquiring %s, Error ID:%d", *mutex_lock_name, rc);
+			syslog(LOG_ERR, " Unknown error acquiring %s, Error ID:%d", mutex_lock_name, rc);
 			exit(ERROR);
 			break;
 	}

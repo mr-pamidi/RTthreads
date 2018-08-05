@@ -26,7 +26,7 @@
 void *query_frames(void *cameraIdx);
 void *store_frames(void *params);
 
-#endif
+#endif //_CAPTURE_HPP_
 
 //==============================================================================
 //	End of file!

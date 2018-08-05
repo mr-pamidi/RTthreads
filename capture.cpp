@@ -7,6 +7,8 @@
 //  Description: Used for querying and storing the frames from the USB camera
 //
 #include "capture.hpp"
+#include "utilities.h"
+#include "include.h"
 
 //global variables
 extern pthread_cond_t cond_query_frames_thread;
@@ -62,7 +64,7 @@ void *query_frames(void *cameraIdx)
 
         #ifdef DEBUG_MODE_ON
             //syslog(LOG_WARNING," cvQueryframe start at :%lld", app_timer_counter);
-        #endif
+        #endif //DEBUG_MODE_ON
 
         //thread safe
         rc = pthread_mutex_lock(&frame_mutex_lock);
@@ -81,7 +83,7 @@ void *query_frames(void *cameraIdx)
 
         #ifdef DEBUG_MODE_ON
             //syslog(LOG_WARNING," cvQueryframe done at :%lld", app_timer_counter);
-        #endif
+        #endif //DEBUG_MODE_ON
 
         cvShowImage(capture_window_title, frame);
 
@@ -93,7 +95,7 @@ void *query_frames(void *cameraIdx)
 
         #ifdef DEBUG_MODE_ON
             //syslog(LOG_WARNING," cvShowImage done at :%lld", app_timer_counter);
-        #endif
+        #endif //DEBUG_MODE_ON
     }
 
     cvReleaseCapture(&capture);
@@ -104,7 +106,7 @@ void *query_frames(void *cameraIdx)
 
     #ifdef DEBUG_MODE_ON
         syslog(LOG_WARNING," QUERY_FRAMES_THREAD exiting...");
-    #endif
+    #endif //DEBUG_MODE_ON
 
 };
 
@@ -143,7 +145,7 @@ void *store_frames(void *params)
 
 		#ifdef DEBUG_MODE_ON
 			syslog(LOG_WARNING, " store_frames start write at:%lld", app_timer_counter);
-		#endif
+		#endif //DEBUG_MODE_ON
 
 		//make sure other threads are not updating frames at this moment
 		rc = pthread_mutex_lock(&frame_mutex_lock);
@@ -176,7 +178,7 @@ void *store_frames(void *params)
 
 	   	#ifdef DEBUG_MODE_ON
 			syslog(LOG_WARNING, " store_frames end of write at:%lld", app_timer_counter);
-	   	#endif
+	   	#endif //DEBUG_MODE_ON
 
 	}
 

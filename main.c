@@ -80,7 +80,7 @@ void *rt_thread_dispatcher_handler(void *something)
 	assign_RT_schedular_attr(&store_frames_thread_attr, &store_frames_thread_sched_param, SCHED_FIFO, STORE_FRAMES_THREAD_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
 
 	#ifdef DEBUG_MODE_ON
-    syslog_scheduler();
+    //syslog_scheduler();
 	#endif //DEBUG_MODE_ON
 
 	//initialize timer thread attributes
