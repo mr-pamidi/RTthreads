@@ -67,112 +67,6 @@ void assign_RT_schedular_attr(pthread_attr_t *thread_attr, struct sched_param *s
 #endif
 }
 
-
-//------------------------------------------------------------------------------------------------------------------------------
-//  Function Name:  set_thread_cpu_affinity
-//
-//  Parameters:     thread - calling thread
-//                  core - available core numebr
-//
-//  Return:         None
-//
-//  Description:    Used for assigning the pthread cpu affinity of the calling thread, to run on the given core number
-//
-//------------------------------------------------------------------------------------------------------------------------------
-void set_thread_cpu_affinity(pthread_t thread, const jetson_tx2_cores core)
-{
-
-    int rc;
-    cpu_set_t jetson_cpu_set; //used for cpu affinity set
-
-    //Note: make sure "#define _GNU_SOURCE" is included in the header
-
-    CPU_ZERO(&jetson_cpu_set); //Initialize jetson_cpu_set to all to 0, i.e. no CPUs selected.
-    CPU_SET(core, &jetson_cpu_set); //set the bit that represents core
-
-    rc = sched_setaffinity(thread, sizeof(cpu_set_t), &jetson_cpu_set); //Set affinity of current thread to the defined jetson_cpu_set mask
-    assert(rc == 0);
-}
-
-
-//------------------------------------------------------------------------------------------------------------------------------
-//  Function Name:  initialize_syslogs
-//
-//  Parameters:     None
-//
-//  Return:         None
-//
-//  Description:    Initializes the syslog parameters in USER mode
-//
-//------------------------------------------------------------------------------------------------------------------------------
-void initialize_syslogs()
-{
-    //set log mask to log upto and including LOG_DEBUG level
-    setlogmask (LOG_UPTO (LOG_DEBUG)); //Reference: https://linux.die.net/man/3/setlogmask
-
-    //open log with tht provided string.
-    //Check the reference to see what each of the parameters are used
-    openlog("Real-time pthread practise", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_USER); //Reference: https://linux.die.net/man/3/openlog
-}
-
-
-//------------------------------------------------------------------------------------------------------------------------------
-//  Function Name:  syslog_scheduler
-//
-//  Parameters:     None
-//
-//  Return:         None
-//
-//  Description:    Logs the type of schedular being used by the calling thread
-//
-//------------------------------------------------------------------------------------------------------------------------------
-//Note: Make sure syslog is initialized, and not closed before calling this function
-void syslog_scheduler()
-{
-    int thread_sched_type;
-
-    //Get current schedular policy for the calling thread
-    thread_sched_type = sched_getscheduler(THIS_THREAD);
-
-    switch(thread_sched_type)
-    {
-        case SCHED_FIFO:
-            syslog(LOG_INFO, " Pthread Policy is SCHED_FIFO");
-            break;
-
-        case SCHED_OTHER:
-            syslog(LOG_INFO, " Pthread Policy is SCHED_OTHER\n");
-            break;
-
-        case SCHED_RR:
-            syslog(LOG_INFO, " Pthread Policy is SCHED_RR\n");
-            break;
-
-        default:
-            syslog(LOG_ERR, " Pthread Policy is UNKNOWN\n");
-    }
-}
-
-
-//------------------------------------------------------------------------------------------------------------------------------
-//  Function Name:  syslog_time
-//
-//  Parameters:     thread_id - user provided thread number or id
-//                  time - time to log
-//
-//  Return:         None
-//
-//  Description:    Logs the type of schedular being used by the calling thread
-//
-//------------------------------------------------------------------------------------------------------------------------------
-//Note: Make sure syslog is initialized, and not closed before calling this function
-//TBD: Make chanegs to this function as required.
-void syslog_time(unsigned int thread_id, const struct timespec *time)
-{
-    syslog(LOG_INFO, "Thread: %d, syslog timestamp %ld:%ld",thread_id, time->tv_sec, time->tv_nsec);
-}
-
-
 //------------------------------------------------------------------------------------------------------------------------------
 //  Function Name:  delta_time_in_msec
 //
@@ -252,6 +146,62 @@ double elapsed_time_in_msec(const struct timespec *past_time)
     exit(ERROR);
 }
 
+//------------------------------------------------------------------------------------------------------------------------------
+//  Function Name:  initialize_syslogs
+//
+//  Parameters:     None
+//
+//  Return:         None
+//
+//  Description:    Initializes the syslog parameters in USER mode
+//
+//------------------------------------------------------------------------------------------------------------------------------
+void initialize_syslogs()
+{
+    //set log mask to log upto and including LOG_DEBUG level
+    setlogmask (LOG_UPTO (LOG_DEBUG)); //Reference: https://linux.die.net/man/3/setlogmask
+
+    //open log with tht provided string.
+    //Check the reference to see what each of the parameters are used
+    openlog("Real-time pthread practise", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_USER); //Reference: https://linux.die.net/man/3/openlog
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------
+//  Function Name:  min_time
+//
+//  Parameters:     time1
+//                  time2
+//
+//  Return:         Min of "time1" and "time2"
+//
+//  Description:    Calculates and returns min time between "time1" and "time2"
+//
+//------------------------------------------------------------------------------------------------------------------------------
+struct timespec min_time(const struct timespec *time1, const struct timespec *time2)
+{
+  //check min for both seconds and nanoseconds
+  if( (time1->tv_sec < time2->tv_sec) &&  (time1->tv_nsec < time2->tv_nsec) )
+  {
+      return (*time1);
+  }
+  //check min seconds
+  else if (time1->tv_sec < time2->tv_sec)
+  {
+      return (*time1);
+  }
+  //check min nanoseconds
+  else if (time1->tv_nsec < time2->tv_nsec)
+  {
+      return (*time1);
+  }
+  //if all of the above fails, return time2
+  else
+  {
+      return (*time2);
+  }
+}
+
 
 //------------------------------------------------------------------------------------------------------------------------------
 //  Function Name:  max_time
@@ -290,38 +240,169 @@ struct timespec max_time(const struct timespec *time1, const struct timespec *ti
 
 
 //------------------------------------------------------------------------------------------------------------------------------
-//  Function Name:  min_time
+//  Function Name:  set_thread_cpu_affinity
 //
-//  Parameters:     time1
-//                  time2
+//  Parameters:     thread - calling thread
+//                  core - available core numebr
 //
-//  Return:         Min of "time1" and "time2"
+//  Return:         None
 //
-//  Description:    Calculates and returns min time between "time1" and "time2"
+//  Description:    Used for assigning the pthread cpu affinity of the calling thread, to run on the given core number
 //
 //------------------------------------------------------------------------------------------------------------------------------
-struct timespec min_time(const struct timespec *time1, const struct timespec *time2)
+void set_thread_cpu_affinity(pthread_t thread, const jetson_tx2_cores core)
 {
-  //check min for both seconds and nanoseconds
-  if( (time1->tv_sec < time2->tv_sec) &&  (time1->tv_nsec < time2->tv_nsec) )
-  {
-      return (*time1);
-  }
-  //check min seconds
-  else if (time1->tv_sec < time2->tv_sec)
-  {
-      return (*time1);
-  }
-  //check min nanoseconds
-  else if (time1->tv_nsec < time2->tv_nsec)
-  {
-      return (*time1);
-  }
-  //if all of the above fails, return time2
-  else
-  {
-      return (*time2);
-  }
+
+    int rc;
+    cpu_set_t jetson_cpu_set; //used for cpu affinity set
+
+    //Note: make sure "#define _GNU_SOURCE" is included in the header
+
+    CPU_ZERO(&jetson_cpu_set); //Initialize jetson_cpu_set to all to 0, i.e. no CPUs selected.
+    CPU_SET(core, &jetson_cpu_set); //set the bit that represents core
+
+    rc = sched_setaffinity(thread, sizeof(cpu_set_t), &jetson_cpu_set); //Set affinity of current thread to the defined jetson_cpu_set mask
+    assert(rc == 0);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+//  Function Name:  syslog_scheduler
+//
+//  Parameters:     None
+//
+//  Return:         None
+//
+//  Description:    Logs the type of schedular being used by the calling thread
+//
+//------------------------------------------------------------------------------------------------------------------------------
+//Note: Make sure syslog is initialized, and not closed before calling this function
+void syslog_scheduler()
+{
+    int thread_sched_type;
+
+    //Get current schedular policy for the calling thread
+    thread_sched_type = sched_getscheduler(THIS_THREAD);
+
+    switch(thread_sched_type)
+    {
+        case SCHED_FIFO:
+            syslog(LOG_INFO, " Pthread Policy is SCHED_FIFO");
+            break;
+
+        case SCHED_OTHER:
+            syslog(LOG_INFO, " Pthread Policy is SCHED_OTHER\n");
+            break;
+
+        case SCHED_RR:
+            syslog(LOG_INFO, " Pthread Policy is SCHED_RR\n");
+            break;
+
+        default:
+            syslog(LOG_ERR, " Pthread Policy is UNKNOWN\n");
+    }
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------
+//  Function Name:  syslog_time
+//
+//  Parameters:     thread_id - user provided thread number or id
+//                  time - time to log
+//
+//  Return:         None
+//
+//  Description:    Logs the type of schedular being used by the calling thread
+//
+//------------------------------------------------------------------------------------------------------------------------------
+//Note: Make sure syslog is initialized, and not closed before calling this function
+//TBD: Make chanegs to this function as required.
+void syslog_time(unsigned int thread_id, const struct timespec *time)
+{
+    syslog(LOG_INFO, "Thread: %d, syslog timestamp %ld:%ld",thread_id, time->tv_sec, time->tv_nsec);
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------
+//  Function Name:  validate_pthread_mutex_lock_status
+//
+//  Parameters:     mutex_lock_name - mutex lock name for logging purposes
+//                  rc - pthread_mutex_lock return code
+//
+//  Return:         None
+//
+//  Description:    Validates the pthread_mutex_lock return status, and provides syslog
+//
+//------------------------------------------------------------------------------------------------------------------------------
+void validate_pthread_mutex_lock_status(const char *mutex_lock_name, const int rc)
+{
+	switch(rc)
+	{
+		case EINVAL:
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EINVAL", *mutex_lock_name);
+			exit(ERROR);
+			break;
+
+		case EBUSY:
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EBUSY", *mutex_lock_name);
+			break;
+
+		case EAGAIN:
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EAGAIN", *mutex_lock_name);
+			break;
+
+		case EDEADLK:
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EDEADLK", *mutex_lock_name);
+			break;
+
+		case EPERM:
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EPERM", *mutex_lock_name);
+			break;
+
+		default:
+			syslog(LOG_ERR, " Unknown error acquiring %s, Error ID:%d", *mutex_lock_name, rc);
+			exit(ERROR);
+			break;
+	}
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------
+//  Function Name:  validate_pthread_mutex_unlock_status
+//
+//  Parameters:     mutex_lock_name - mutex lock name for logging purposes
+//                  rc - pthread_mutex_unlock return code
+//
+//  Return:         None
+//
+//  Description:    Validates the pthread_mutex_unlock return status, and provides syslog
+//
+//------------------------------------------------------------------------------------------------------------------------------
+void validate_pthread_mutex_unlock_status(const char *mutex_lock_name, const int rc)
+{
+	switch(rc)
+	{
+		case EINVAL:
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EINVAL", *mutex_lock_name);
+			exit(ERROR);
+			break;
+
+		case EAGAIN:
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EAGAIN", *mutex_lock_name);
+			break;
+
+		case EDEADLK:
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EDEADLK", *mutex_lock_name);
+			break;
+
+		case EPERM:
+			syslog(LOG_ERR, " Error acquiring %s, Error ID:EPERM", *mutex_lock_name);
+			break;
+
+		default:
+			syslog(LOG_ERR, " Unknown error acquiring %s, Error ID:%d", *mutex_lock_name, rc);
+			exit(ERROR);
+			break;
+	}
 }
 
 //==============================================================================

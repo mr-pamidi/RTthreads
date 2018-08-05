@@ -24,32 +24,58 @@ const char capture_window_title[] = "Project-Trails";
 CvCapture* capture;
 IplImage* frame;
 pthread_mutex_t frame_mutex_lock;
+pthread_mutexattr_t frame_mutex_lock_attr;
 
+//query_frames_thread must start before store_frames_thread
 void *query_frames(void *cameraIdx)
 {
-    int *dev = (int *)cameraIdx;
+	int rc;
+	int *dev = (int *)cameraIdx;
+
+	//initilize mutex to protect timer count variable
+	rc = pthread_mutexattr_init(&frame_mutex_lock_attr);
+	assert(rc == SUCCESS);
+	rc = pthread_mutexattr_settype(&frame_mutex_lock_attr, PTHREAD_MUTEX_ERRORCHECK);
+	assert(rc == SUCCESS);
+    rc = pthread_mutex_init(&frame_mutex_lock, &frame_mutex_lock_attr);
+    assert(rc == SUCCESS);
 
     capture = cvCreateCameraCapture(0);
     cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, FRAME_HRES);
     cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, FRAME_VRES);
     cvNamedWindow(capture_window_title, CV_WINDOW_AUTOSIZE);
 
-
     while(1)
     {
         //wait for signal
-        pthread_mutex_lock(&app_timer_counter_mutex_lock);
+        rc = pthread_mutex_lock(&app_timer_counter_mutex_lock);
+		if(rc)
+		{
+			validate_pthread_mutex_lock_status("app_timer_counter_mutex_lock", rc);
+		}
         pthread_cond_wait(&cond_query_frames_thread, &app_timer_counter_mutex_lock);
-        pthread_mutex_unlock(&app_timer_counter_mutex_lock);
+        rc = pthread_mutex_unlock(&app_timer_counter_mutex_lock);
+		if(rc)
+		{
+			validate_pthread_mutex_unlock_status("app_timer_counter_mutex_lock", rc);
+		}
 
         #ifdef DEBUG_MODE_ON
             //syslog(LOG_WARNING," cvQueryframe start at :%lld", app_timer_counter);
         #endif
 
         //thread safe
-        pthread_mutex_lock(&frame_mutex_lock);
+        rc = pthread_mutex_lock(&frame_mutex_lock);
+		if(rc)
+		{
+			validate_pthread_mutex_lock_status("frame_mutex_lock", rc);
+		}
 		frame = cvQueryFrame(capture);
-		pthread_mutex_unlock(&frame_mutex_lock);
+		rc = pthread_mutex_unlock(&frame_mutex_lock);
+		if(rc)
+		{
+			validate_pthread_mutex_unlock_status("frame_mutex_lock", rc);
+		}
 
         if(!frame) break;
 
@@ -86,7 +112,8 @@ void *query_frames(void *cameraIdx)
 void *store_frames(void *params)
 {
 
-    vector<int> compression_params;
+	int rc;
+	vector<int> compression_params;
     compression_params.push_back(CV_IMWRITE_PXM_BINARY);
     compression_params.push_back(1);
 	unsigned int frame_counter=0;
@@ -98,9 +125,20 @@ void *store_frames(void *params)
 	while(1)
 	{
 		//wait for signal
-		pthread_mutex_lock(&app_timer_counter_mutex_lock);
-		pthread_cond_wait(&cond_store_frames_thread, &app_timer_counter_mutex_lock);
-        pthread_mutex_unlock(&app_timer_counter_mutex_lock);
+		rc = pthread_mutex_lock(&app_timer_counter_mutex_lock);
+		if(rc)
+		{
+			validate_pthread_mutex_lock_status("app_timer_counter_mutex_lock", rc);
+		}
+
+		rc = pthread_cond_wait(&cond_store_frames_thread, &app_timer_counter_mutex_lock);
+		assert(rc == SUCCESS);
+
+		rc = pthread_mutex_unlock(&app_timer_counter_mutex_lock);
+		if(rc)
+		{
+			validate_pthread_mutex_unlock_status("app_timer_counter_mutex_lock", rc);
+		}
 
 
 		#ifdef DEBUG_MODE_ON
@@ -108,9 +146,19 @@ void *store_frames(void *params)
 		#endif
 
 		//make sure other threads are not updating frames at this moment
-		pthread_mutex_lock(&frame_mutex_lock);
+		rc = pthread_mutex_lock(&frame_mutex_lock);
+		if(rc)
+		{
+			validate_pthread_mutex_lock_status("frame_mutex_lock", rc);
+		}
+
 		mat = cvarrToMat(frame);
-	    pthread_mutex_unlock(&frame_mutex_lock);
+
+	    rc = pthread_mutex_unlock(&frame_mutex_lock);
+		if(rc)
+		{
+			validate_pthread_mutex_unlock_status("frame_mutex_lock", rc);
+		}
 
 		sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);
 
