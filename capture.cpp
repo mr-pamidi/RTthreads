@@ -45,7 +45,7 @@ void *query_frames(void *cameraIdx)
         pthread_mutex_unlock(&system_time_mutex_lock);
 
         #ifdef DEBUG_MODE_ON
-            syslog(LOG_WARNING," cvQueryframe start at :%lld", system_time);
+            //syslog(LOG_WARNING," cvQueryframe start at :%lld", system_time);
         #endif
 
         //thread safe
@@ -64,7 +64,7 @@ void *query_frames(void *cameraIdx)
         if(!frame) break;
 
         #ifdef DEBUG_MODE_ON
-            syslog(LOG_WARNING," cvQueryframe done at :%lld", system_time);
+            //syslog(LOG_WARNING," cvQueryframe done at :%lld", system_time);
         #endif
 
         cvShowImage(capture_window_title, frame);
@@ -76,7 +76,7 @@ void *query_frames(void *cameraIdx)
         }
 
         #ifdef DEBUG_MODE_ON
-            syslog(LOG_WARNING," cvShowImage done at :%lld", system_time);
+            //syslog(LOG_WARNING," cvShowImage done at :%lld", system_time);
         #endif
 
     }
@@ -102,12 +102,16 @@ void *store_frames(void *params)
 	char ppm_file_name[20] ={};
 
     Mat mat;
-	
+
 	while(1)
 	{
 		pthread_mutex_lock(&frame_mutex_lock);
 		pthread_cond_wait(&cond_store_frames, &frame_mutex_lock);
         pthread_mutex_unlock(&frame_mutex_lock);
+
+		#ifdef DEBUG_MODE_ON
+			syslog(LOG_WARNING, " store_frames called at:%lld", system_time);
+		#endif
 
 		mat = cvarrToMat(frame);
 
