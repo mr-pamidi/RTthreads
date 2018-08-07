@@ -25,13 +25,12 @@
 #include <syslog.h> //Reference: https://linux.die.net/man/3/syslog
 #include <sys/ioctl.h>
 #include <sys/stat.h> //http://man7.org/linux/man-pages/man2/stat.2.html
-//#include <sys/types.h>
+#include <sys/types.h>
 #include <sys/resource.h>
 #include <time.h>
 #include <unistd.h>
 #include "utilities.h"
 #include "v4l2_capture.h"
-
 
 //Important Note: Priorities in this application are used as..
 //0 refers to (RT_MAX) priority,
@@ -83,12 +82,12 @@ typedef struct
 #define JETSON_TX2_ARM_CORE3    (5)
 //as root do: "~./tegrastats" to find these CPU core numbers
 typedef enum jetson_tx2_cores{
-    arm_core0,      //core 0
-    //denver_core0,   //core 1
-    //denver_core1,   //core 2
-    arm_core1=3,      //core 3
-    arm_core2,      //core 4
-    arm_core3,      //core 5
+    ARM_CORE0,        //core 0
+    //DENVER_CORE0,   //core 1
+    //DENVER_CORE1,   //core 2
+    ARM_CORE1 = 3,    //core 3
+    ARM_CORE2,        //core 4
+    ARM_CORE3,        //core 5
 }jetson_tx2_cores;
 
 //macro for exit(-1) along with debug details
@@ -103,7 +102,7 @@ typedef enum jetson_tx2_cores{
 	exit(ERROR);\
 }
 
-#define CLEAR_MEMORY(var) 	memset(&(var), NULL, sizeof(var))
+#define CLEAR_MEMORY(var) 	memset(&(var), 0, sizeof(var))
 #endif //_INCLUDE_H
 
 //==============================================================================

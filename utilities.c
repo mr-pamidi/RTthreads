@@ -10,7 +10,7 @@
 #include "utilities.h"
 
 //initialize
-//jetson_tx2_cores jetson_tx2_cpu_cores;
+jetson_tx2_cores jetson_tx2_cpu_cores;
 
 //------------------------------------------------------------------------------------------------------------------------------
 //  Function Name:  assign_RT_schedular_attr
@@ -26,7 +26,7 @@
 //  Description:    Used for assigning the pthread attributes with the provided real-time scheduling scheme and priority.
 //
 //------------------------------------------------------------------------------------------------------------------------------
-void assign_RT_schedular_attr(pthread_attr_t *thread_attr, struct sched_param *sched_param, const int rt_sched_policy, const int thread_priority, const jetson_tx2_cores core)
+void assign_RT_schedular_attr(pthread_attr_t *thread_attr, struct sched_param *sched_param, const int rt_sched_policy, const int thread_priority, const int core)
 {
     int rc = 0;
 
@@ -262,7 +262,7 @@ struct timespec max_time(const struct timespec *time1, const struct timespec *ti
 //  Description:    Used for assigning the pthread cpu affinity of the calling thread, to run on the given core number
 //
 //------------------------------------------------------------------------------------------------------------------------------
-void set_thread_cpu_affinity(pthread_t thread, const jetson_tx2_cores core)
+void set_thread_cpu_affinity(pthread_t thread, const int core)
 {
 
     int rc;

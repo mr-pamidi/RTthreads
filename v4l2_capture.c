@@ -13,7 +13,7 @@
 #include "v4l2_capture.h"
 
 // /dev/videoX name
-extern static char *device_name; //extern from main.c
+extern char *device_name; //extern from main.c
 
 static struct v4l2_format fmt;
 
@@ -30,7 +30,7 @@ static void init_device(void)
 
 	//https://www.linuxtv.org/downloads/v4l-dvb-apis-old/vidioc-querycap.html
 	//query device capabilities
-    rc == xioctl(device_file_descriptor, VIDIOC_QUERYCAP, &device_v4l2_capability));
+    rc == xioctl(device_file_descriptor, VIDIOC_QUERYCAP, &device_v4l2_capability);
 	if(rc)
 	{
         if (EINVAL == errno)
@@ -75,7 +75,7 @@ static void init_device(void)
         device_v4l2_crop.c = device_v4l2_cropcap.defrect; //reset to default
 
 		//use default crop scaling
-        rc == xioctl(device_file_descriptor, VIDIOC_S_CROP, &device_v4l2_crop))
+        rc == xioctl(device_file_descriptor, VIDIOC_S_CROP, &device_v4l2_crop);
         if(rc)
 		{
             switch (errno)
@@ -161,7 +161,7 @@ static void open_device(void)
 	struct stat device_stats;
 
 	//retrive informaiton about the /dev/videoX file
-    rc = stat(device_name, &device_stats));
+    rc = stat(device_name, &device_stats);
 	if(rc)
 	{
         fprintf(stderr, "Cannot identify '%s'\n", device_name);

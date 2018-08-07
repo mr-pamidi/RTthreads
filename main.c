@@ -12,7 +12,7 @@
 #include "v4l2_capture.h"
 
 // /dev/videoX name
-static char *device_name=NULL;
+char *device_name=NULL;
 
 //global time variable, and a mutex to restrict access to it
 unsigned long long app_timer_counter = 0;
@@ -27,7 +27,7 @@ void *rt_thread_dispatcher_handler(void *something);
 void timer_handler(union sigval arg);
 
 
-static const char short_options[] = "d:hmruofc:";
+static const char short_options[] = ":dhmruofc:";
 
 static const struct option
 long_options[] = {
@@ -76,6 +76,7 @@ int main( int argc, char** argv )
 		device_name = "/dev/video0";
 	}
 
+/*
 	while(1)
 	{
 		int idx;
@@ -84,54 +85,54 @@ int main( int argc, char** argv )
 		user_input_option = getopt_long(argc, argv, short_options, long_options, &idx);
 
 		if (user_input_option == -1)
-            break; //exit forever loop
+                break; //exit forever loop
 
         switch (user_input_option)
         {
-            case 0: /* getopt_long() flag */
+            case 0: // getopt_long() flag
                 break;
-/*
-            case 'd':
-                dev_name = optarg;
-                break;
-*/
+
+         //   case 'd':
+         //       dev_name = optarg;
+         //       break;
+
             case 'h':
                 usage(stdout, argc, argv);
                 return(SUCCESS);
-/*
-            case 'm':
-                io = IO_METHOD_MMAP;
-                break;
 
-            case 'r':
-                io = IO_METHOD_READ;
-                break;
+         //   case 'm':
+         //       io = IO_METHOD_MMAP;
+         //       break;
 
-            case 'u':
-                io = IO_METHOD_USERPTR;
-                break;
+         //   case 'r':
+         //       io = IO_METHOD_READ;
+         //       break;
 
-            case 'o':
-                out_buf++;
-                break;
-*/
+         //   case 'u':
+         //       io = IO_METHOD_USERPTR;
+         //       break;
+
+         //   case 'o':
+         //       out_buf++;
+         //       break;
+
             case 'f':
                 use_v4l2_libs = true;
                 break;
 
-/*
-            case 'c':
-                errno = 0;
-                frame_count = strtol(optarg, NULL, 0);
-                if (errno)
-                        errno_exit(optarg);
-                break;
+         //   case 'c':
+         //       errno = 0;
+         //       frame_count = strtol(optarg, NULL, 0);
+         //       if (errno)
+         //               errno_exit(optarg);
+         //       break;
 
             default:
                 usage(stderr, argc, argv);
-                exit(EXIT_FAILURE); */
+                exit(EXIT_FAILURE);
         }
     }
+*/
 
 	int rc = 0;
 
@@ -142,7 +143,7 @@ int main( int argc, char** argv )
 	pthread_attr_t rt_thread_dispatcher_sched_attr;
 	struct sched_param rt_thread_dispatcher_sched_param;
 
-	assign_RT_schedular_attr(&rt_thread_dispatcher_sched_attr, &rt_thread_dispatcher_sched_param, SCHED_FIFO, SCHED_FIFO_MAX_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
+	assign_RT_schedular_attr(&rt_thread_dispatcher_sched_attr, &rt_thread_dispatcher_sched_param, SCHED_FIFO, SCHED_FIFO_MAX_PRIORITY, JETSON_TX2_ARM_CORE2);
 
 	syslog(LOG_WARNING, "RT dispatcher thread dispatching with priority ==> %d <==", rt_thread_dispatcher_sched_param.sched_priority);
 	rc = pthread_create(&rt_thread_dispatcher, &rt_thread_dispatcher_sched_attr, rt_thread_dispatcher_handler, (void *)0 );
@@ -186,15 +187,15 @@ void *rt_thread_dispatcher_handler(void *something)
 	store_frames_threadIdx.threadIdx = STORE_FRAMES_THREAD_IDX;
 
     //assign RT scheduler attributes
-	assign_RT_schedular_attr(&query_frames_thread_attr, &query_frames_thread_sched_param, SCHED_FIFO, QUERY_FRAMES_THREAD_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
-	assign_RT_schedular_attr(&store_frames_thread_attr, &store_frames_thread_sched_param, SCHED_FIFO, STORE_FRAMES_THREAD_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
+	assign_RT_schedular_attr(&query_frames_thread_attr, &query_frames_thread_sched_param, SCHED_FIFO, QUERY_FRAMES_THREAD_PRIORITY, JETSON_TX2_ARM_CORE2);
+	assign_RT_schedular_attr(&store_frames_thread_attr, &store_frames_thread_sched_param, SCHED_FIFO, STORE_FRAMES_THREAD_PRIORITY, JETSON_TX2_ARM_CORE2);
 
 	#ifdef DEBUG_MODE_ON
     //syslog_scheduler();
 	#endif //DEBUG_MODE_ON
 
 	//initialize timer thread attributes
-    assign_RT_schedular_attr(&timer_thread_attr, &timer_thread_sched_param, SCHED_FIFO, SCHED_FIFO_MAX_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
+    assign_RT_schedular_attr(&timer_thread_attr, &timer_thread_sched_param, SCHED_FIFO, SCHED_FIFO_MAX_PRIORITY, JETSON_TX2_ARM_CORE2);
 
 	//assign sigevent paramaters for the timer
     sigevent_param.sigev_notify = SIGEV_THREAD;
