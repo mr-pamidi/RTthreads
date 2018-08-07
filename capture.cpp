@@ -29,11 +29,20 @@ IplImage* frame;
 pthread_mutex_t frame_mutex_lock;
 pthread_mutexattr_t frame_mutex_lock_attr;
 
+int exit_application = FALSE;
+
 //query_frames_thread must start before store_frames_thread
 void *query_frames(void *cameraIdx)
 {
 	int rc;
 	int *dev = (int *)cameraIdx;
+	unsigned int frame_counter;
+
+	#ifdef TIME_ANALYSIS
+	//time analysis
+	struct timespec query_frames_start_time;
+	double query_frames_elapsed_time, query_frames_average_load_time, query_frames_wcet=0;
+	#endif //TIME_ANALYSIS
 
 	//initilize mutex to protect timer count variable
 	rc = pthread_mutexattr_init(&frame_mutex_lock_attr);
@@ -78,8 +87,15 @@ void *query_frames(void *cameraIdx)
 			EXIT_FAIL("pthread_mutex_unlock");
 		}
 
+		#ifdef TIME_ANALYSIS
+		if(clock_gettime(CLOCK_REALTIME, &query_frames_start_time))
+		{
+			EXIT_FAIL("clock_gettime");
+		}
+		#endif //TIME_ANALYSIS
+
         #ifdef DEBUG_MODE_ON
-            //syslog(LOG_WARNING," cvQueryframe start at :%lld", app_timer_counter);
+            syslog(LOG_WARNING," cvQueryframe start at :%lld", app_timer_counter);
         #endif //DEBUG_MODE_ON
 
         //thread safe
@@ -112,8 +128,26 @@ void *query_frames(void *cameraIdx)
         }
 
         #ifdef DEBUG_MODE_ON
-            //syslog(LOG_WARNING," cvShowImage done at :%lld", app_timer_counter);
+            syslog(LOG_WARNING," cvShowImage done at :%lld", app_timer_counter);
         #endif //DEBUG_MODE_ON
+
+		++frame_counter;
+
+		#ifdef TIME_ANALYSIS
+		query_frames_elapsed_time = elapsed_time_in_msec(&query_frames_start_time);
+
+		if(query_frames_elapsed_time > query_frames_wcet)
+		{
+			query_frames_wcet = query_frames_elapsed_time;
+		}
+
+		query_frames_average_load_time += query_frames_elapsed_time;
+		#endif //TIME_ANALYSIS
+
+		if(exit_application)
+		{
+			break;
+		}
     }
 
     cvReleaseCapture(&capture);
@@ -122,9 +156,16 @@ void *query_frames(void *cameraIdx)
 	//destroy mutex lock!
 	pthread_mutex_destroy(&frame_mutex_lock);
 
+	#ifdef TIME_ANALYSIS
+	query_frames_average_load_time /= frame_counter;
+	syslog(LOG_WARNING, " query_frames_thread execuiton results:\n WCET:%lf, Average:%lf", query_frames_wcet, query_frames_average_load_time);
+	#endif //TIME_ANALYSIS
+
     #ifdef DEBUG_MODE_ON
-        syslog(LOG_WARNING," QUERY_FRAMES_THREAD exiting...");
+    syslog(LOG_WARNING," query_frames_thread exiting...");
     #endif //DEBUG_MODE_ON
+
+	exit_application = TRUE;
 
 };
 
@@ -133,6 +174,13 @@ void *store_frames(void *params)
 {
 
 	int rc;
+
+	#ifdef TIME_ANALYSIS
+	//time analysis
+	struct timespec store_frames_start_time;
+	double store_frames_elapsed_time, store_frames_average_load_time, store_frames_wcet=0;
+	#endif //TIME_ANALYSIS
+
 	vector<int> compression_params;
     compression_params.push_back(CV_IMWRITE_PXM_BINARY);
     compression_params.push_back(1);
@@ -163,6 +211,12 @@ void *store_frames(void *params)
 			EXIT_FAIL("pthread_mutex_unlock");
 		}
 
+		#ifdef TIME_ANALYSIS
+		if(clock_gettime(CLOCK_REALTIME, &store_frames_start_time))
+		{
+			EXIT_FAIL("clock_gettime");
+		}
+		#endif //TIME_ANALYSIS
 
 		#ifdef DEBUG_MODE_ON
 			syslog(LOG_WARNING, " store_frames start write at:%lld", app_timer_counter);
@@ -201,7 +255,33 @@ void *store_frames(void *params)
 			syslog(LOG_WARNING, " store_frames end of write at:%lld", app_timer_counter);
 	   	#endif //DEBUG_MODE_ON
 
+		#ifdef TIME_ANALYSIS
+		store_frames_elapsed_time = elapsed_time_in_msec(&stotre_frames_start_time);
+
+		if(store_frames_elapsed_time > store_frames_wcet)
+		{
+			store_frames_wcet = store_frames_elapsed_time;
+		}
+
+		store_frames_average_load_time += store_frames_elapsed_time;
+		#endif //TIME_ANALYSIS
+
+		if(exit_application)
+		{
+			break;
+		}
 	}
+
+	#ifdef TIME_ANALYSIS
+	store_frames_average_load_time /= frame_counter;
+	syslog(LOG_WARNING, " store_frames_thread execuiton results:\n WCET:%lf, Average:%lf", store_frames_wcet, store_frames_average_load_time);
+	#endif //TIME_ANALYSIS
+
+    #ifdef DEBUG_MODE_ON
+    syslog(LOG_WARNING," store_frames_thread exiting...");
+    #endif //DEBUG_MODE_ON
+
+	exit_application = TRUE;
 
 }
 

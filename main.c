@@ -269,6 +269,8 @@ void *rt_thread_dispatcher_handler(void *something)
 
 		//wait fot query_frames_thread to exit
     	pthread_join(query_frames_thread, NULL);
+		//wait for store_frames_thread to exit
+		pthread_join(store_frames_thread, NULL);
 	}
 
 	//stop timer
