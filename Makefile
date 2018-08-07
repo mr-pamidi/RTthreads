@@ -7,7 +7,7 @@ CFLAGS= -O0 -pg -g $(INCLUDE_DIRS) $(CDEFS)
 LIBS= -lpthread -lrt
 CPPLIBS= -L/usr/lib -lopencv_core -lopencv_flann -lopencv_video
 
-HFILES= utilities.h capture.hpp
+HFILES= utilities.h capture.hpp v4l2_capture.h
 CFILES= main.c utilities.c v4l2_capture.c
 CPPFILES= capture.cpp
 
