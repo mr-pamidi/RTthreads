@@ -25,7 +25,7 @@
 #include <syslog.h> //Reference: https://linux.die.net/man/3/syslog
 #include <sys/ioctl.h>
 #include <sys/stat.h> //http://man7.org/linux/man-pages/man2/stat.2.html
-#include <sys/types.h>
+//#include <sys/types.h>
 #include <sys/resource.h>
 #include <time.h>
 #include <unistd.h>
@@ -82,7 +82,7 @@ typedef struct
 #define JETSON_TX2_ARM_CORE2    (4)
 #define JETSON_TX2_ARM_CORE3    (5)
 //as root do: "~./tegrastats" to find these CPU core numbers
-typedef enum jetson_tx2_cores_t{
+typedef enum jetson_tx2_cores{
     arm_core0,      //core 0
     //denver_core0,   //core 1
     //denver_core1,   //core 2
