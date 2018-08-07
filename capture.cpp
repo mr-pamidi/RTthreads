@@ -36,11 +36,20 @@ void *query_frames(void *cameraIdx)
 
 	//initilize mutex to protect timer count variable
 	rc = pthread_mutexattr_init(&frame_mutex_lock_attr);
-	assert(rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_mutexattr_init");
+	}
 	rc = pthread_mutexattr_settype(&frame_mutex_lock_attr, PTHREAD_MUTEX_ERRORCHECK);
-	assert(rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_mutexattr_settype");
+	}
     rc = pthread_mutex_init(&frame_mutex_lock, &frame_mutex_lock_attr);
-    assert(rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_mutex_init");
+	}
 
     capture = cvCreateCameraCapture(0);
     cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, FRAME_HRES);
@@ -53,13 +62,19 @@ void *query_frames(void *cameraIdx)
         rc = pthread_mutex_lock(&app_timer_counter_mutex_lock);
 		if(rc)
 		{
-			validate_pthread_mutex_lock_status("app_timer_counter_mutex_lock", rc);
+			EXIT_FAIL("pthread_mutex_lock");
 		}
-        pthread_cond_wait(&cond_query_frames_thread, &app_timer_counter_mutex_lock);
-        rc = pthread_mutex_unlock(&app_timer_counter_mutex_lock);
+
+        rc = pthread_cond_wait(&cond_query_frames_thread, &app_timer_counter_mutex_lock);
 		if(rc)
 		{
-			validate_pthread_mutex_unlock_status("app_timer_counter_mutex_lock", rc);
+			EXIT_FAIL("pthread_cond_wait");
+		}
+
+		rc = pthread_mutex_unlock(&app_timer_counter_mutex_lock);
+		if(rc)
+		{
+			EXIT_FAIL("pthread_mutex_unlock");
 		}
 
         #ifdef DEBUG_MODE_ON
@@ -70,13 +85,15 @@ void *query_frames(void *cameraIdx)
         rc = pthread_mutex_lock(&frame_mutex_lock);
 		if(rc)
 		{
-			validate_pthread_mutex_lock_status("frame_mutex_lock", rc);
+			EXIT_FAIL("pthread_mutex_lock");
 		}
+
 		frame = cvQueryFrame(capture);
+
 		rc = pthread_mutex_unlock(&frame_mutex_lock);
 		if(rc)
 		{
-			validate_pthread_mutex_unlock_status("frame_mutex_lock", rc);
+			EXIT_FAIL("pthread_mutex_unlock");
 		}
 
         if(!frame) break;
@@ -130,16 +147,19 @@ void *store_frames(void *params)
 		rc = pthread_mutex_lock(&app_timer_counter_mutex_lock);
 		if(rc)
 		{
-			validate_pthread_mutex_lock_status("app_timer_counter_mutex_lock", rc);
+			EXIT_FAIL("pthread_mutex_lock");
 		}
 
 		rc = pthread_cond_wait(&cond_store_frames_thread, &app_timer_counter_mutex_lock);
-		assert(rc == SUCCESS);
+		if(rc)
+		{
+			EXIT_FAIL("pthread_cond_wait");
+		}
 
 		rc = pthread_mutex_unlock(&app_timer_counter_mutex_lock);
 		if(rc)
 		{
-			validate_pthread_mutex_unlock_status("app_timer_counter_mutex_lock", rc);
+			EXIT_FAIL("pthread_mutex_unlock");
 		}
 
 
@@ -151,7 +171,7 @@ void *store_frames(void *params)
 		rc = pthread_mutex_lock(&frame_mutex_lock);
 		if(rc)
 		{
-			validate_pthread_mutex_lock_status("frame_mutex_lock", rc);
+			EXIT_FAIL("pthread_mutex_lock");
 		}
 
 		mat = cvarrToMat(frame);
@@ -159,7 +179,7 @@ void *store_frames(void *params)
 	    rc = pthread_mutex_unlock(&frame_mutex_lock);
 		if(rc)
 		{
-			validate_pthread_mutex_unlock_status("frame_mutex_lock", rc);
+			EXIT_FAIL("pthread_mutex_unlock");
 		}
 
 		sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);

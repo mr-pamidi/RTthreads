@@ -39,7 +39,10 @@ int main( int argc, char** argv )
 
     syslog(LOG_WARNING, "RT dispatcher thread dispatching with priority ==> %d <==", rt_thread_dispatcher_sched_param.sched_priority);
     rc = pthread_create(&rt_thread_dispatcher, &rt_thread_dispatcher_sched_attr, rt_thread_dispatcher_handler, (void *)0 );
-	assert (rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_create");
+	}
 
     //wait for main thread to finish execution
     pthread_join(rt_thread_dispatcher, NULL);
@@ -100,33 +103,54 @@ void *rt_thread_dispatcher_handler(void *something)
 
 	//create timer
     rc = timer_create(CLOCK_REALTIME, &sigevent_param, &timer_id);
-    assert (rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("timer_create");
+	}
 
 
 	//initialize app_timer_counter variable mutex attributes
 	rc = pthread_mutexattr_init(&app_timer_counter_mutex_lock_attr);
-	assert(rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_mutexattr_init");
+	}
 	//set mutex type to PTHREAD_MUTEX_ERRORCHECK
 	rc = pthread_mutexattr_settype(&app_timer_counter_mutex_lock_attr, PTHREAD_MUTEX_ERRORCHECK);
-	assert(rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_mutexattr_settype");
+	}
 	//initilize mutex to protect app_timer_counter variable
     rc = pthread_mutex_init(&app_timer_counter_mutex_lock, &app_timer_counter_mutex_lock_attr);
-    assert(rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_mutex_init");
+	}
 
 	//start timer
 	syslog(LOG_WARNING,"\n Timer starting with timer_thread_attr priority ==> %d <==", timer_thread_sched_param.sched_priority);
     rc = timer_settime(timer_id, 0, &timer_period, 0);
-    assert (rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("timer_settime");
+	}
 
 	//create query_frames_thread
     syslog(LOG_WARNING,"\n query_frames_thread dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
     rc = pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
-	assert (rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_create");
+	}
 
 	//create store_frames_thread
 	syslog(LOG_WARNING,"\n store_frames_thread dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
 	rc = pthread_create(&store_frames_thread, &store_frames_thread_attr, store_frames, (void *)&store_frames_threadIdx);
-	assert (rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_create");
+	}
 
 	//wait fot query_frames_thread to exit
     pthread_join(query_frames_thread, NULL);
@@ -135,7 +159,10 @@ void *rt_thread_dispatcher_handler(void *something)
     timer_period.it_interval.tv_sec = 0;
     timer_period.it_interval.tv_nsec = 0;
     rc = timer_settime(timer_id, 0, &timer_period, 0);
-    assert (rc == SUCCESS);
+	if(rc)
+	{
+		EXIT_FAIL("timer_settime");
+	}
 
 	//destroy mutex lock
     pthread_mutex_destroy(&app_timer_counter_mutex_lock);
@@ -157,7 +184,7 @@ void timer_handler(union sigval arg)
 	//verify mutex lock status
 	if(rc)
 	{
-		validate_pthread_mutex_lock_status("app_timer_counter_mutex_lock", rc);
+		EXIT_FAIL("pthread_mutex_lock");
 	}
 	//update timer counter
     app_timer_counter += APP_TIMER_INTERVAL_IN_MSEC;
@@ -166,20 +193,28 @@ void timer_handler(union sigval arg)
     if((app_timer_counter % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0)
     {
         //signal  query_frames_thread function handler..
-        pthread_cond_signal(&cond_query_frames_thread);
+        rc = pthread_cond_signal(&cond_query_frames_thread);
+		if(rc)
+		{
+			EXIT_FAIL("pthread_cond_signal");
+		}
     }
 	//run at 1 Hz
 	if((app_timer_counter % STORE_FRAMES_INTERVAL_IN_MSEC) == 0)
 	{
 		//signal store_frames_thread function handler..
         pthread_cond_signal(&cond_store_frames_thread);
+		if(rc)
+		{
+			EXIT_FAIL("pthread_cond_signal");
+		}
 	}
 	//relinquish mutex lock on timer counter variable
     rc = pthread_mutex_unlock(&app_timer_counter_mutex_lock);
 	//verify mutex unlock status
 	if(rc)
 	{
-		validate_pthread_mutex_unlock_status("app_timer_counter_mutex_lock", rc);
+		EXIT_FAIL("pthread_mutex_unlock");
 	}
 }
 

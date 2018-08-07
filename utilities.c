@@ -32,15 +32,24 @@ void assign_RT_schedular_attr(pthread_attr_t *thread_attr, struct sched_param *s
     //initialize the thread attributes to default values
     //and, check if the assignment is successful or not
     rc = pthread_attr_init(thread_attr);
-    assert(rc == 0);
+    if(rc)
+	{
+		EXIT_FAIL("pthread_attr_init");
+	}
 
     //Set scheduling policy to inherited
     rc = pthread_attr_setinheritsched(thread_attr, PTHREAD_EXPLICIT_SCHED);
-    assert(rc == 0);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_attr_setinheritsched");
+	}
 
     //Assign real-time scheduling scheme attribute
     rc = pthread_attr_setschedpolicy(thread_attr, rt_sched_policy);
-    assert(rc == 0);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_attr_setschedpolicy");
+	}
 
     //assign priorty
     //***Note: The priorities are assigned as (RT_MAX - priority)
@@ -52,7 +61,10 @@ void assign_RT_schedular_attr(pthread_attr_t *thread_attr, struct sched_param *s
 
     //set schedular with SCHED_FIFO scheme
     rc = sched_setscheduler(THIS_THREAD, rt_sched_policy, sched_param);
-    assert(rc == 0);
+	if(rc)
+	{
+		EXIT_FAIL("sched_setscheduler");
+	}
 
 
     set_thread_cpu_affinity(THIS_THREAD, core);
@@ -60,7 +72,10 @@ void assign_RT_schedular_attr(pthread_attr_t *thread_attr, struct sched_param *s
 
     //set scheduling paramater to the thread
     rc = pthread_attr_setschedparam(thread_attr, sched_param);
-    assert(rc == 0);
+	if(rc)
+	{
+		EXIT_FAIL("pthread_attr_setschedparam");
+	}
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -138,9 +153,9 @@ double elapsed_time_in_msec(const struct timespec *past_time)
 
     //the funciton call should not reach here.
     //if reaches, exit!
-    printf("elapsed_time_in_msec error in File:\"%s\", Line:%d\n", __FILE__, __LINE__);
-    exit(ERROR);
+	EXIT_FAIL("elapsed_time_in_msec");
 }
+
 
 //------------------------------------------------------------------------------------------------------------------------------
 //  Function Name:  initialize_syslogs
@@ -258,7 +273,10 @@ void set_thread_cpu_affinity(pthread_t thread, const jetson_tx2_cores core)
     CPU_SET(core, &jetson_cpu_set); //set the bit that represents core
 
     rc = sched_setaffinity(thread, sizeof(cpu_set_t), &jetson_cpu_set); //Set affinity of current thread to the defined jetson_cpu_set mask
-    assert(rc == 0);
+    if(rc)
+	{
+		EXIT_FAIL("sched_setaffinity");
+	}
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
