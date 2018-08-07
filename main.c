@@ -12,7 +12,7 @@
 #include "v4l2_capture.h"
 
 // /dev/videoX name
-static char *device_name;
+static char *device_name=NULL;
 
 //global time variable, and a mutex to restrict access to it
 unsigned long long app_timer_counter = 0;

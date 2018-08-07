@@ -17,6 +17,8 @@ extern static char *device_name; //extern from main.c
 
 static struct v4l2_format fmt;
 
+static int device_file_descriptor = -1;
+
 static void init_device(void)
 {
 	int rc;
@@ -139,7 +141,7 @@ static void init_device(void)
 /*
     switch (io)
     {
-        case IO_METHOD_READ: */
+        case IO_METHOD_READ:
             init_read(fmt.fmt.pix.sizeimage); /*
             break;
 
@@ -155,7 +157,8 @@ static void init_device(void)
 
 static void open_device(void)
 {
-    struct stat device_stats;
+	int rc;
+	struct stat device_stats;
 
 	//retrive informaiton about the /dev/videoX file
     rc = stat(device_name, &device_stats));
@@ -192,7 +195,7 @@ static int xioctl(int file_descriptor, int request, void *arg)
 		//system call manipulates the underlying device parameters..
         // ..of '/dev/videoX'
         rc = ioctl(file_descriptor, request, arg);
-    } while (-1 == r && EINTR == errno);
+    } while (-1 == rc && EINTR == errno);
 
     return rc;
 }
