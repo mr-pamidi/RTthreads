@@ -9,9 +9,13 @@
 #ifndef _INCLUDE_H
 #define _INCLUDE_H
 
-#define _GNU_SOURCE // see "feature_test_macros"
+#define _GNU_SOURCE //see "feature_test_macros"
 #include <assert.h>
+#include "capture.hpp"
 #include <errno.h>
+#include <fcntl.h>	//low-level i/o
+#include <getopt.h>
+#include <linux/videodev2.h>
 #include <pthread.h>
 #include <sched.h>
 #include <signal.h>
@@ -19,9 +23,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h> //Reference: https://linux.die.net/man/3/syslog
+#include <sys/ioctl.h>
+#include <sys/stat.h> //http://man7.org/linux/man-pages/man2/stat.2.html
+#include <sys/types.h>
 #include <sys/resource.h>
 #include <time.h>
 #include <unistd.h>
+#include "utilities.h"
+#include "v4l2_capture.h"
+
 
 //Important Note: Priorities in this application are used as..
 //0 refers to (RT_MAX) priority,
@@ -81,8 +91,9 @@ typedef enum jetson_tx2_cores{
     arm_core3,      //core 5
 }jetson_tx2_cores;
 
-#define EXIT_FAIL(fun_name){\
-	printf("\n********** Run time ERROR **************\
+#define EXIT_FAIL(fun_name) {\
+	fprintf(stderr,\
+			"\n********** Run time ERROR **************\
 	     	\nFile: \"%s\"						\
 		 	\nLine: %d							\
 		 	\nsymbol: %s						\
@@ -91,6 +102,7 @@ typedef enum jetson_tx2_cores{
 	exit(ERROR);\
 }
 
+#define CLEAR_MEMORY(var) 	memset(&(var), NULL, sizeof(var))
 #endif //_INCLUDE_H
 
 //==============================================================================

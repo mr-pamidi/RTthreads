@@ -6,7 +6,6 @@
 //  Description: Frequently used function APIs
 //
 #include "include.h"
-#include "utilities.h"
 
 //initialize
 //jetson_tx2_cores jetson_tx2_cpu_cores;

@@ -7,8 +7,6 @@
 //
 
 #include "include.h"
-#include "utilities.h"
-#include "capture.hpp"
 
 // /dev/videoX name
 static char *device_name;
@@ -22,7 +20,7 @@ pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
 
 //function prototyping
-void *rt_thread_dispatcher_use_openCV_handler(void *something);
+void *rt_thread_dispatcher_handler(void *something);
 void timer_handler(union sigval arg);
 
 
@@ -58,13 +56,14 @@ static void usage(FILE *fp, int argc, char **argv)
                  "",
                  argv[0]);
 }
+
+bool use_v4l2_libs = false; //global variable
+
 //**********************************
 //  Funcation Name:     main
 //**********************************
 int main( int argc, char** argv )
 {
-	bool use_v4l2_libs = false;
-
 	if(argc >1)
 	{
 		device_name = argv[1];
@@ -136,30 +135,21 @@ int main( int argc, char** argv )
 	//syslogs
     initialize_syslogs();
 
-	if(use_v4l2_libs)
+	pthread_t rt_thread_dispatcher;
+	pthread_attr_t rt_thread_dispatcher_sched_attr;
+	struct sched_param rt_thread_dispatcher_sched_param;
+
+	assign_RT_schedular_attr(&rt_thread_dispatcher_sched_attr, &rt_thread_dispatcher_sched_param, SCHED_FIFO, SCHED_FIFO_MAX_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
+
+	syslog(LOG_WARNING, "RT dispatcher thread dispatching with priority ==> %d <==", rt_thread_dispatcher_sched_param.sched_priority);
+	rc = pthread_create(&rt_thread_dispatcher, &rt_thread_dispatcher_sched_attr, rt_thread_dispatcher_handler, (void *)0 );
+	if(rc)
 	{
-		pthread_t rt_thread_dispatcher_use_v4l2;
-    	pthread_attr_t rt_thread_dispatcher_use_v4l2_sched_attr;
-    	struct sched_param rt_thread_dispatcher_use_v4l2_sched_param;
+		EXIT_FAIL("pthread_create");
 	}
-	else
-	{
-		pthread_t rt_thread_dispatcher_use_openCV;
-    	pthread_attr_t rt_thread_dispatcher_use_openCV_sched_attr;
-    	struct sched_param rt_thread_dispatcher_use_openCV_sched_param;
 
-    	assign_RT_schedular_attr(&rt_thread_dispatcher_use_openCV_sched_attr, &rt_thread_dispatcher_use_openCV_sched_param, SCHED_FIFO, rt_thread_dispatcher_use_openCV_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
-
-    	syslog(LOG_WARNING, "RT dispatcher thread dispatching with priority ==> %d <==", rt_thread_dispatcher_use_openCV_sched_param.sched_priority);
-    	rc = pthread_create(&rt_thread_dispatcher_use_openCV, &rt_thread_dispatcher_use_openCV_sched_attr, rt_thread_dispatcher_use_openCV_handler, (void *)0 );
-		if(rc)
-		{
-			EXIT_FAIL("pthread_create");
-		}
-
-    	//wait for main thread to finish execution
-    	pthread_join(rt_thread_dispatcher_use_openCV, NULL);
-	}
+	//wait for main thread to finish execution
+	pthread_join(rt_thread_dispatcher, NULL);
 
     //syslog(LOG_WARNING, "End of user log!");
     closelog();
@@ -171,9 +161,9 @@ int main( int argc, char** argv )
 
 
 //*****************************************
-//  Funcation Name:     rt_thread_dispatcher_use_openCV_handler
+//  Funcation Name:     rt_thread_dispatcher_handler
 //*****************************************
-void *rt_thread_dispatcher_use_openCV_handler(void *something)
+void *rt_thread_dispatcher_handler(void *something)
 {
     int rc;
     pthread_t query_frames_thread, store_frames_thread;
@@ -250,24 +240,33 @@ void *rt_thread_dispatcher_use_openCV_handler(void *something)
 		EXIT_FAIL("timer_settime");
 	}
 
-	//create query_frames_thread
-    syslog(LOG_WARNING,"\n query_frames_thread dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
-    rc = pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
-	if(rc)
+	if(use_v4l2_libs)
 	{
-		EXIT_FAIL("pthread_create");
+
 	}
 
-	//create store_frames_thread
-	syslog(LOG_WARNING,"\n store_frames_thread dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
-	rc = pthread_create(&store_frames_thread, &store_frames_thread_attr, store_frames, (void *)&store_frames_threadIdx);
-	if(rc)
+	//use openCV APIs
+	else
 	{
-		EXIT_FAIL("pthread_create");
-	}
+		//create query_frames_thread
+    	syslog(LOG_WARNING,"\n query_frames_thread dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
+    	rc = pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
+		if(rc)
+		{
+			EXIT_FAIL("pthread_create");
+		}
 
-	//wait fot query_frames_thread to exit
-    pthread_join(query_frames_thread, NULL);
+		//create store_frames_thread
+		syslog(LOG_WARNING,"\n store_frames_thread dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
+		rc = pthread_create(&store_frames_thread, &store_frames_thread_attr, store_frames, (void *)&store_frames_threadIdx);
+		if(rc)
+		{
+			EXIT_FAIL("pthread_create");
+		}
+
+		//wait fot query_frames_thread to exit
+    	pthread_join(query_frames_thread, NULL);
+	}
 
 	//stop timer
     timer_period.it_interval.tv_sec = 0;
@@ -281,7 +280,7 @@ void *rt_thread_dispatcher_use_openCV_handler(void *something)
 	//destroy mutex lock
     pthread_mutex_destroy(&app_timer_counter_mutex_lock);
 	//add a log
-    syslog(LOG_WARNING," rt_thread_dispatcher_use_openCV exiting...");
+    syslog(LOG_WARNING," rt_thread_dispatcher exiting...");
 	//exit thread
     pthread_exit(NULL);
 }
@@ -303,24 +302,34 @@ void timer_handler(union sigval arg)
 	//update timer counter
     app_timer_counter += APP_TIMER_INTERVAL_IN_MSEC;
 
-    //run at 30Hz
-    if((app_timer_counter % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0)
-    {
-        //signal  query_frames_thread
-        rc = pthread_cond_signal(&cond_query_frames_thread);
-		if(rc)
-		{
-			EXIT_FAIL("pthread_cond_signal");
-		}
-    }
-	//run at 1 Hz
-	if((app_timer_counter % STORE_FRAMES_INTERVAL_IN_MSEC) == 0)
+	//use v4l2 library APIs
+	if(use_v4l2_libs)
 	{
-		//signal store_frames_thread
-        pthread_cond_signal(&cond_store_frames_thread);
-		if(rc)
+		
+	}
+
+	//use openCV APIs
+	else
+	{
+    	//run at 30Hz
+    	if((app_timer_counter % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0)
+    	{
+        	//signal  query_frames_thread
+        	rc = pthread_cond_signal(&cond_query_frames_thread);
+			if(rc)
+			{
+				EXIT_FAIL("pthread_cond_signal");
+			}
+    	}
+		//run at 1 Hz
+		if((app_timer_counter % STORE_FRAMES_INTERVAL_IN_MSEC) == 0)
 		{
-			EXIT_FAIL("pthread_cond_signal");
+			//signal store_frames_thread
+        	pthread_cond_signal(&cond_store_frames_thread);
+			if(rc)
+			{
+				EXIT_FAIL("pthread_cond_signal");
+			}
 		}
 	}
 

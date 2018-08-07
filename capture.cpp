@@ -6,8 +6,7 @@
 //
 //  Description: Used for querying and storing the frames from the USB camera
 //
-#include "capture.hpp"
-#include "utilities.h"
+
 #include "include.h"
 
 //global variables
