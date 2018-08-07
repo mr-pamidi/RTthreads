@@ -6,7 +6,10 @@
 //  Description: Manages RT Threads and timer
 //
 
+#include "capture.hpp"
 #include "include.h"
+#include "utilities.h"
+#include "v4l2_capture.h"
 
 // /dev/videoX name
 static char *device_name;

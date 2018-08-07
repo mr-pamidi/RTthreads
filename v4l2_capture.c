@@ -9,6 +9,8 @@
 // ..source: http://ecee.colorado.edu/~ecen5623/ecen/ex/Linux/computer-vision/simple-capture/capture.c
 
 #include "include.h"
+#include "utilities.h"
+#include "v4l2_capture.h"
 
 // /dev/videoX name
 extern static char *device_name; //extern from main.c

@@ -7,7 +7,9 @@
 //  Description: Used for querying and storing the frames from the USB camera
 //
 
+#include "capture.hpp"
 #include "include.h"
+#include "utilities.h"
 
 //global variables
 extern pthread_cond_t cond_query_frames_thread;
