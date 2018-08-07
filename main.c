@@ -305,7 +305,7 @@ void timer_handler(union sigval arg)
 	//use v4l2 library APIs
 	if(use_v4l2_libs)
 	{
-		
+
 	}
 
 	//use openCV APIs
