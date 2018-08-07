@@ -29,8 +29,8 @@
 //2 refers to (RT_MAX - 2) priority, and so on..
 #define SCHED_FIFO_MAX_PRIORITY     	(0)   //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY))
 #define TIMER_THREAD_PRIORITY			(SCHED_FIFO_MAX_PRIORITY) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY))
-#define STORE_FRAMES_THREAD_PRIORITY	(SCHED_FIFO_MAX_PRIORITY)// + 1) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 1))
-#define QUERY_FRAMES_THREAD_PRIORITY	(SCHED_FIFO_MAX_PRIORITY)// + 2) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 2))
+#define STORE_FRAMES_THREAD_PRIORITY	(SCHED_FIFO_MAX_PRIORITY + 1) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 1))
+#define QUERY_FRAMES_THREAD_PRIORITY	(SCHED_FIFO_MAX_PRIORITY + 2) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 2))
 #define RT_THREAD_DISPATCHER_PRIORITY	(SCHED_FIFO_MAX_PRIORITY)// + 5) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 5))
 
 //Thread indexes
@@ -81,15 +81,14 @@ typedef enum jetson_tx2_cores{
     arm_core3,      //core 5
 }jetson_tx2_cores;
 
-#define EXIT_FAIL(fun_name)
-{\
-	(printf("\n********** Run time ERROR *******\
-	     	\nFile:\"%s\"						\
-		 	\nLine:%d							\
-		 	\nsymbol:%s							\
-		 	\nError:%s							\
-		 	\n********** Exiting Application **\n", __FILE__, __LINE__, fun_name, strerror(errno));\
-	exit(ERROR);)\
+#define EXIT_FAIL(fun_name){\
+	printf("\n********** Run time ERROR **************\
+	     	\nFile: \"%s\"						\
+		 	\nLine: %d							\
+		 	\nsymbol: %s						\
+		 	\nError: %s							\
+		 	\n\nExiting Application...\n\n", __FILE__, __LINE__, fun_name, strerror(errno));\
+	exit(ERROR);\
 }
 
 #endif //_INCLUDE_H

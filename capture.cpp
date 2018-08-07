@@ -190,7 +190,7 @@ void *store_frames(void *params)
 	   	}
 	   	catch (runtime_error& ex)
 	   	{
-			syslog(LOG_ERR, " ***Exception converting image to PNG format:");
+			printf("Exception converting image to PPM format!\n");
 			exit(ERROR);
 	   	}
 

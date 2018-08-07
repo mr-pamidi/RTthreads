@@ -10,6 +10,9 @@
 #include "utilities.h"
 #include "capture.hpp"
 
+// /dev/videoX name
+static char *device_name;
+
 //global time variable, and a mutex to restrict access to it
 unsigned long long app_timer_counter = 0;
 pthread_mutex_t app_timer_counter_mutex_lock;
@@ -19,33 +22,144 @@ pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
 
 //function prototyping
-void *rt_thread_dispatcher_handler(void *something);
+void *rt_thread_dispatcher_use_openCV_handler(void *something);
 void timer_handler(union sigval arg);
 
+
+static const char short_options[] = "d:hmruofc:";
+
+static const struct option
+long_options[] = {
+        { "device", required_argument, NULL, 'd' },
+        { "help",   no_argument,       NULL, 'h' },
+        { "mmap",   no_argument,       NULL, 'm' },
+        { "read",   no_argument,       NULL, 'r' },
+        { "userp",  no_argument,       NULL, 'u' },
+        { "output", no_argument,       NULL, 'o' },
+        { "format", no_argument,       NULL, 'f' },
+        { "count",  required_argument, NULL, 'c' },
+        { 0, 0, 0, 0 }
+};
+
+
+static void usage(FILE *fp, int argc, char **argv)
+{
+        fprintf(fp,
+				 "Usage: %s /dev/videoX [options]\n\n"
+                 "Options:\n"
+                 "-d | --device name   Video device name\n"
+                 "-h | --help          Print this message\n"
+                 "-m | --mmap          Use memory mapped buffers [default]\n"
+                 "-r | --read          Use read() calls\n"
+                 "-u | --userp         Use application allocated buffers\n"
+                 "-o | --output        Outputs stream to stdout\n"
+                 "-f | --format        Force format to 640x480 GREY\n"
+                 "-c | --count         Number of frames to grab\n"
+                 "",
+                 argv[0]);
+}
 //**********************************
 //  Funcation Name:     main
 //**********************************
 int main( int argc, char** argv )
 {
-	int rc = 0;
-	pthread_t rt_thread_dispatcher;
-    pthread_attr_t rt_thread_dispatcher_sched_attr;
-    struct sched_param rt_thread_dispatcher_sched_param;
+	bool use_v4l2_libs = false;
 
-    //syslogs
-    initialize_syslogs();
-
-    assign_RT_schedular_attr(&rt_thread_dispatcher_sched_attr, &rt_thread_dispatcher_sched_param, SCHED_FIFO, RT_THREAD_DISPATCHER_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
-
-    syslog(LOG_WARNING, "RT dispatcher thread dispatching with priority ==> %d <==", rt_thread_dispatcher_sched_param.sched_priority);
-    rc = pthread_create(&rt_thread_dispatcher, &rt_thread_dispatcher_sched_attr, rt_thread_dispatcher_handler, (void *)0 );
-	if(rc)
+	if(argc >1)
 	{
-		EXIT_FAIL("pthread_create");
+		device_name = argv[1];
+	}
+	else
+	{
+		device_name = "/dev/video0";
 	}
 
-    //wait for main thread to finish execution
-    pthread_join(rt_thread_dispatcher, NULL);
+	while(1)
+	{
+		int idx;
+		char user_input_option;
+
+		user_input_option = getopt_long(argc, argv, short_options, long_options, &idx);
+
+		if (user_input_option == -1)
+            break; //exit forever loop
+
+        switch (user_input_option)
+        {
+            case 0: /* getopt_long() flag */
+                break;
+/*
+            case 'd':
+                dev_name = optarg;
+                break;
+*/
+            case 'h':
+                usage(stdout, argc, argv);
+                return(SUCCESS);
+/*
+            case 'm':
+                io = IO_METHOD_MMAP;
+                break;
+
+            case 'r':
+                io = IO_METHOD_READ;
+                break;
+
+            case 'u':
+                io = IO_METHOD_USERPTR;
+                break;
+
+            case 'o':
+                out_buf++;
+                break;
+*/
+            case 'f':
+                use_v4l2_libs = true;
+                break;
+
+/*
+            case 'c':
+                errno = 0;
+                frame_count = strtol(optarg, NULL, 0);
+                if (errno)
+                        errno_exit(optarg);
+                break;
+
+            default:
+                usage(stderr, argc, argv);
+                exit(EXIT_FAILURE); */
+        }
+    }
+
+	int rc = 0;
+
+	//syslogs
+    initialize_syslogs();
+
+	if(use_v4l2_libs)
+	{
+		pthread_t rt_thread_dispatcher_use_v4l2;
+    	pthread_attr_t rt_thread_dispatcher_use_v4l2_sched_attr;
+    	struct sched_param rt_thread_dispatcher_use_v4l2_sched_param;
+	}
+	else
+	{
+		pthread_t rt_thread_dispatcher_use_openCV;
+    	pthread_attr_t rt_thread_dispatcher_use_openCV_sched_attr;
+    	struct sched_param rt_thread_dispatcher_use_openCV_sched_param;
+
+    	assign_RT_schedular_attr(&rt_thread_dispatcher_use_openCV_sched_attr, &rt_thread_dispatcher_use_openCV_sched_param, SCHED_FIFO, rt_thread_dispatcher_use_openCV_PRIORITY, (jetson_tx2_cores)JETSON_TX2_ARM_CORE2);
+
+    	syslog(LOG_WARNING, "RT dispatcher thread dispatching with priority ==> %d <==", rt_thread_dispatcher_use_openCV_sched_param.sched_priority);
+    	rc = pthread_create(&rt_thread_dispatcher_use_openCV, &rt_thread_dispatcher_use_openCV_sched_attr, rt_thread_dispatcher_use_openCV_handler, (void *)0 );
+		if(rc)
+		{
+			EXIT_FAIL("pthread_create");
+		}
+
+    	//wait for main thread to finish execution
+    	pthread_join(rt_thread_dispatcher_use_openCV, NULL);
+	}
 
     //syslog(LOG_WARNING, "End of user log!");
     closelog();
@@ -57,9 +171,9 @@ int main( int argc, char** argv )
 
 
 //*****************************************
-//  Funcation Name:     rt_thread_dispatcher_handler
+//  Funcation Name:     rt_thread_dispatcher_use_openCV_handler
 //*****************************************
-void *rt_thread_dispatcher_handler(void *something)
+void *rt_thread_dispatcher_use_openCV_handler(void *something)
 {
     int rc;
     pthread_t query_frames_thread, store_frames_thread;
@@ -167,7 +281,7 @@ void *rt_thread_dispatcher_handler(void *something)
 	//destroy mutex lock
     pthread_mutex_destroy(&app_timer_counter_mutex_lock);
 	//add a log
-    syslog(LOG_WARNING," rt_thread_dispatcher exiting...");
+    syslog(LOG_WARNING," rt_thread_dispatcher_use_openCV exiting...");
 	//exit thread
     pthread_exit(NULL);
 }
@@ -181,18 +295,18 @@ void timer_handler(union sigval arg)
 
 	//accquire mutex lock on timer counter variable
     rc = pthread_mutex_lock(&app_timer_counter_mutex_lock);
-	//verify mutex lock status
 	if(rc)
 	{
 		EXIT_FAIL("pthread_mutex_lock");
 	}
+
 	//update timer counter
     app_timer_counter += APP_TIMER_INTERVAL_IN_MSEC;
 
     //run at 30Hz
     if((app_timer_counter % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0)
     {
-        //signal  query_frames_thread function handler..
+        //signal  query_frames_thread
         rc = pthread_cond_signal(&cond_query_frames_thread);
 		if(rc)
 		{
@@ -202,13 +316,14 @@ void timer_handler(union sigval arg)
 	//run at 1 Hz
 	if((app_timer_counter % STORE_FRAMES_INTERVAL_IN_MSEC) == 0)
 	{
-		//signal store_frames_thread function handler..
+		//signal store_frames_thread
         pthread_cond_signal(&cond_store_frames_thread);
 		if(rc)
 		{
 			EXIT_FAIL("pthread_cond_signal");
 		}
 	}
+
 	//relinquish mutex lock on timer counter variable
     rc = pthread_mutex_unlock(&app_timer_counter_mutex_lock);
 	//verify mutex unlock status

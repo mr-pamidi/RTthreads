@@ -21,8 +21,6 @@ struct timespec max_time(const struct timespec *time1, const struct timespec *ti
 void set_thread_cpu_affinity(pthread_t thread, const jetson_tx2_cores core);
 void syslog_scheduler();
 void syslog_time(unsigned int thread_id, const struct timespec *time);
-void validate_pthread_mutex_lock_status(const char *mutex_lock_name, const int rc);
-void validate_pthread_mutex_unlock_status(const char *mutex_lock_name, const int rc);
 
 #endif //_UTILITIES_H
 
