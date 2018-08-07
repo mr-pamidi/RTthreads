@@ -30,7 +30,7 @@ static void init_device(void)
 
 	//https://www.linuxtv.org/downloads/v4l-dvb-apis-old/vidioc-querycap.html
 	//query device capabilities
-    rc == xioctl(device_file_descriptor, VIDIOC_QUERYCAP, &device_v4l2_capability))
+    rc == xioctl(device_file_descriptor, VIDIOC_QUERYCAP, &device_v4l2_capability));
 	if(rc)
 	{
         if (EINVAL == errno)
