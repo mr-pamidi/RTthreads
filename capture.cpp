@@ -16,6 +16,7 @@ extern pthread_cond_t cond_query_frames_thread;
 extern pthread_cond_t cond_store_frames_thread;
 extern pthread_mutex_t app_timer_counter_mutex_lock;
 extern unsigned long long app_timer_counter;
+extern bool timer_started;
 
 using namespace cv;
 using namespace std;
@@ -31,6 +32,39 @@ pthread_mutexattr_t frame_mutex_lock_attr;
 
 int exit_application = FALSE;
 
+void initialize_device_use_openCV(void)
+{
+	capture = cvCreateCameraCapture(0);
+    cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, FRAME_HRES);
+    cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, FRAME_VRES);
+    cvNamedWindow(capture_window_title, CV_WINDOW_AUTOSIZE);
+
+	frame = cvQueryFrame(capture);
+	if(!frame) EXIT_FAIL("Problem initializing the device");
+
+	cvShowImage(capture_window_title, frame);
+
+	char c = cvWaitKey(33);
+
+	Mat mat = cvarrToMat(frame);
+
+	vector<int> compression_params;
+    compression_params.push_back(CV_IMWRITE_PXM_BINARY);
+    compression_params.push_back(1);
+
+	try
+	{
+		imwrite("dummy.ppm", mat, compression_params);
+	}
+	catch (runtime_error& ex)
+	{
+		printf("Exception converting image to PPM format!\n");
+		exit(ERROR);
+	}
+
+}
+
+
 //query_frames_thread must start before store_frames_thread
 void *query_frames(void *cameraIdx)
 {
@@ -45,90 +79,50 @@ void *query_frames(void *cameraIdx)
 	#endif //TIME_ANALYSIS
 
 	//initilize mutex to protect timer count variable
-	rc = pthread_mutexattr_init(&frame_mutex_lock_attr);
-	if(rc)
-	{
-		EXIT_FAIL("pthread_mutexattr_init");
-	}
-	rc = pthread_mutexattr_settype(&frame_mutex_lock_attr, PTHREAD_MUTEX_ERRORCHECK);
-	if(rc)
-	{
-		EXIT_FAIL("pthread_mutexattr_settype");
-	}
-    rc = pthread_mutex_init(&frame_mutex_lock, &frame_mutex_lock_attr);
-	if(rc)
-	{
-		EXIT_FAIL("pthread_mutex_init");
-	}
-
-    capture = cvCreateCameraCapture(0);
-    cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, FRAME_HRES);
-    cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, FRAME_VRES);
-    cvNamedWindow(capture_window_title, CV_WINDOW_AUTOSIZE);
+	if(pthread_mutexattr_init(&frame_mutex_lock_attr)) EXIT_FAIL("pthread_mutexattr_init");
+	if(pthread_mutexattr_settype(&frame_mutex_lock_attr, PTHREAD_MUTEX_ERRORCHECK)) EXIT_FAIL("pthread_mutexattr_settype");
+	if(pthread_mutex_init(&frame_mutex_lock, &frame_mutex_lock_attr)) EXIT_FAIL("pthread_mutex_init");
 
     while(1)
     {
-        //wait for signal
-        rc = pthread_mutex_lock(&app_timer_counter_mutex_lock);
-		if(rc)
+        //wait for signal from timer
+		if(timer_started)
 		{
-			EXIT_FAIL("pthread_mutex_lock");
+        	if(pthread_mutex_lock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
+        	if(pthread_cond_wait(&cond_query_frames_thread, &app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_cond_wait");
+			if(pthread_mutex_unlock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
+		}
+		else
+		{
+			EXIT_FAIL("Timer not available");
 		}
 
-        rc = pthread_cond_wait(&cond_query_frames_thread, &app_timer_counter_mutex_lock);
-		if(rc)
-		{
-			EXIT_FAIL("pthread_cond_wait");
-		}
-
-		rc = pthread_mutex_unlock(&app_timer_counter_mutex_lock);
-		if(rc)
-		{
-			EXIT_FAIL("pthread_mutex_unlock");
-		}
+		if(exit_application) break;
 
 		#ifdef TIME_ANALYSIS
-		if(clock_gettime(CLOCK_REALTIME, &query_frames_start_time))
-		{
-			EXIT_FAIL("clock_gettime");
-		}
+		if(clock_gettime(CLOCK_REALTIME, &query_frames_start_time)) EXIT_FAIL("clock_gettime");
 		#endif //TIME_ANALYSIS
 
         #ifdef DEBUG_MODE_ON
-            syslog(LOG_WARNING," cvQueryframe start at :%lld", app_timer_counter);
+        syslog(LOG_WARNING," cvQueryframe start at :%lld", app_timer_counter);
         #endif //DEBUG_MODE_ON
 
-        //thread safe
-        rc = pthread_mutex_lock(&frame_mutex_lock);
-		if(rc)
-		{
-			EXIT_FAIL("pthread_mutex_lock");
-		}
-
-		frame = cvQueryFrame(capture);
-
-		rc = pthread_mutex_unlock(&frame_mutex_lock);
-		if(rc)
-		{
-			EXIT_FAIL("pthread_mutex_unlock");
-		}
-
+        //thread safe //lock frame before updating
+        if(pthread_mutex_lock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
+		frame = cvQueryFrame(capture); //capture new frame
+		if(pthread_mutex_unlock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
         if(!frame) break;
 
         #ifdef DEBUG_MODE_ON
-            syslog(LOG_WARNING," cvQueryframe done at :%lld", app_timer_counter);
+        syslog(LOG_WARNING," cvQueryframe done at :%lld", app_timer_counter);
         #endif //DEBUG_MODE_ON
 
         cvShowImage(capture_window_title, frame);
-
         char c = cvWaitKey(1);
-        if( c == 'q')
-        {
-            break;
-        }
+        if( c == 'q') break;
 
         #ifdef DEBUG_MODE_ON
-            syslog(LOG_WARNING," cvShowImage done at :%lld", app_timer_counter);
+        syslog(LOG_WARNING," cvShowImage done at :%lld", app_timer_counter);
         #endif //DEBUG_MODE_ON
 
 		++frame_counter;
@@ -147,10 +141,6 @@ void *query_frames(void *cameraIdx)
 		}
 		#endif //TIME_ANALYSIS
 
-		if(exit_application)
-		{
-			break;
-		}
     }
 
     cvReleaseCapture(&capture);
@@ -171,9 +161,9 @@ void *query_frames(void *cameraIdx)
     syslog(LOG_WARNING," query_frames_thread exiting...");
     #endif //DEBUG_MODE_ON
 
+	//set this bit to let other threads know!
 	exit_application = TRUE;
-
-};
+}
 
 
 void *store_frames(void *params)
@@ -198,54 +188,32 @@ void *store_frames(void *params)
 
 	while(1)
 	{
-		//wait for signal
-		rc = pthread_mutex_lock(&app_timer_counter_mutex_lock);
-		if(rc)
+		if(timer_started)
 		{
-			EXIT_FAIL("pthread_mutex_lock");
+			//wait for signal from timer...
+			if(pthread_mutex_lock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
+			if(pthread_cond_wait(&cond_store_frames_thread, &app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_cond_wait");
+			if(pthread_mutex_unlock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
+		}
+		else
+		{
+			EXIT_FAIL("Timer not available!");
 		}
 
-		rc = pthread_cond_wait(&cond_store_frames_thread, &app_timer_counter_mutex_lock);
-		if(rc)
-		{
-			EXIT_FAIL("pthread_cond_wait");
-		}
+		if(exit_application) break;
 
-		rc = pthread_mutex_unlock(&app_timer_counter_mutex_lock);
-		if(rc)
-		{
-			EXIT_FAIL("pthread_mutex_unlock");
-		}
-		
-		if(exit_application)
-		{
-			break;
-		}
 		#ifdef TIME_ANALYSIS
-		if(clock_gettime(CLOCK_REALTIME, &store_frames_start_time))
-		{
-			EXIT_FAIL("clock_gettime");
-		}
+		if(clock_gettime(CLOCK_REALTIME, &store_frames_start_time)) EXIT_FAIL("clock_gettime");
 		#endif //TIME_ANALYSIS
 
 		#ifdef DEBUG_MODE_ON
-			syslog(LOG_WARNING, " store_frames start write at:%lld", app_timer_counter);
+		syslog(LOG_WARNING, " store_frames start write at:%lld", app_timer_counter);
 		#endif //DEBUG_MODE_ON
 
 		//make sure other threads are not updating frames at this moment
-		rc = pthread_mutex_lock(&frame_mutex_lock);
-		if(rc)
-		{
-			EXIT_FAIL("pthread_mutex_lock");
-		}
-
+		if(pthread_mutex_lock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
 		mat = cvarrToMat(frame);
-
-	    rc = pthread_mutex_unlock(&frame_mutex_lock);
-		if(rc)
-		{
-			EXIT_FAIL("pthread_mutex_unlock");
-		}
+	    if(pthread_mutex_unlock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
 
 		#ifdef DEBUG_MODE_ON
 		syslog(LOG_WARNING, " store_frames unlocked frame_mutex at %lld", app_timer_counter);
@@ -266,7 +234,7 @@ void *store_frames(void *params)
 	   	++frame_counter;
 
 	   	#ifdef DEBUG_MODE_ON
-			syslog(LOG_WARNING, " store_frames end of write at:%lld", app_timer_counter);
+		syslog(LOG_WARNING, " store_frames end of write at:%lld", app_timer_counter);
 	   	#endif //DEBUG_MODE_ON
 
 		#ifdef TIME_ANALYSIS
