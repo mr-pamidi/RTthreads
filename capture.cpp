@@ -116,7 +116,7 @@ void *query_frames(void *cameraIdx)
         if(!frame) break;
 
         #ifdef DEBUG_MODE_ON
-            //syslog(LOG_WARNING," cvQueryframe done at :%lld", app_timer_counter);
+            syslog(LOG_WARNING," cvQueryframe done at :%lld", app_timer_counter);
         #endif //DEBUG_MODE_ON
 
         cvShowImage(capture_window_title, frame);
@@ -246,6 +246,10 @@ void *store_frames(void *params)
 		{
 			EXIT_FAIL("pthread_mutex_unlock");
 		}
+
+		#ifdef DEBUG_MODE_ON
+		syslog(LOG_WARNING, " store_frames unlocked frame_mutex at %lld", app_timer_counter);
+		#endif
 
 		sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);
 

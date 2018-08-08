@@ -15,7 +15,7 @@
 char *device_name=NULL;
 
 //global time variable, and a mutex to restrict access to it
-unsigned long long app_timer_counter = 0;
+unsigned long long app_timer_counter = 1;
 pthread_mutex_t app_timer_counter_mutex_lock;
 pthread_mutexattr_t app_timer_counter_mutex_lock_attr;
 
