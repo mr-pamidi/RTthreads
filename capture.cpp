@@ -134,14 +134,17 @@ void *query_frames(void *cameraIdx)
 		++frame_counter;
 
 		#ifdef TIME_ANALYSIS
-		query_frames_elapsed_time = elapsed_time_in_msec(&query_frames_start_time);
-
-		if(query_frames_elapsed_time > query_frames_wcet)
+		if(frame_counter > 2)
 		{
-			query_frames_wcet = query_frames_elapsed_time;
-		}
+			query_frames_elapsed_time = elapsed_time_in_msec(&query_frames_start_time);
 
-		query_frames_average_load_time += query_frames_elapsed_time;
+			if(query_frames_elapsed_time > query_frames_wcet)
+			{
+				query_frames_wcet = query_frames_elapsed_time;
+			}
+
+			query_frames_average_load_time += query_frames_elapsed_time;
+		}
 		#endif //TIME_ANALYSIS
 
 		if(exit_application)
@@ -157,7 +160,10 @@ void *query_frames(void *cameraIdx)
 	pthread_mutex_destroy(&frame_mutex_lock);
 
 	#ifdef TIME_ANALYSIS
-	query_frames_average_load_time /= frame_counter;
+	if(frame_counter)
+	{
+		query_frames_average_load_time /= frame_counter;
+	}
 	syslog(LOG_WARNING, " query_frames_thread execuiton results:\n WCET:%lf, Average:%lf", query_frames_wcet, query_frames_average_load_time);
 	#endif //TIME_ANALYSIS
 
@@ -210,7 +216,11 @@ void *store_frames(void *params)
 		{
 			EXIT_FAIL("pthread_mutex_unlock");
 		}
-
+		
+		if(exit_application)
+		{
+			break;
+		}
 		#ifdef TIME_ANALYSIS
 		if(clock_gettime(CLOCK_REALTIME, &store_frames_start_time))
 		{
@@ -256,24 +266,26 @@ void *store_frames(void *params)
 	   	#endif //DEBUG_MODE_ON
 
 		#ifdef TIME_ANALYSIS
-		store_frames_elapsed_time = elapsed_time_in_msec(&store_frames_start_time);
-
-		if(store_frames_elapsed_time > store_frames_wcet)
+		if(frame_counter > 2)
 		{
-			store_frames_wcet = store_frames_elapsed_time;
-		}
+			store_frames_elapsed_time = elapsed_time_in_msec(&store_frames_start_time);
 
-		store_frames_average_load_time += store_frames_elapsed_time;
+			if(store_frames_elapsed_time > store_frames_wcet)
+			{
+				store_frames_wcet = store_frames_elapsed_time;
+			}
+
+			store_frames_average_load_time += store_frames_elapsed_time;
+		}
 		#endif //TIME_ANALYSIS
 
-		if(exit_application)
-		{
-			break;
-		}
 	}
 
 	#ifdef TIME_ANALYSIS
-	store_frames_average_load_time /= frame_counter;
+	if(frame_counter)
+	{
+		store_frames_average_load_time /= frame_counter;
+	}
 	syslog(LOG_WARNING, " store_frames_thread execuiton results:\n WCET:%lf, Average:%lf", store_frames_wcet, store_frames_average_load_time);
 	#endif //TIME_ANALYSIS
 

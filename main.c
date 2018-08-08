@@ -4,7 +4,7 @@
 //  File name: main.c
 //
 //  Description: Manages RT Threads and timer
-////
+//
 
 #include "capture.hpp"
 #include "include.h"
@@ -146,7 +146,7 @@ void *rt_thread_dispatcher_handler(void *something)
 	assign_RT_schedular_attr(&store_frames_thread_attr, &store_frames_thread_sched_param, SCHED_FIFO, STORE_FRAMES_THREAD_PRIORITY, JETSON_TX2_ARM_CORE2);
 
 	#ifdef DEBUG_MODE_ON
-    //syslog_scheduler();
+        syslog_scheduler();
 	#endif //DEBUG_MODE_ON
 
 	//initialize timer thread attributes
