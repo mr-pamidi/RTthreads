@@ -256,7 +256,7 @@ void *store_frames(void *params)
 	   	#endif //DEBUG_MODE_ON
 
 		#ifdef TIME_ANALYSIS
-		store_frames_elapsed_time = elapsed_time_in_msec(&stotre_frames_start_time);
+		store_frames_elapsed_time = elapsed_time_in_msec(&store_frames_start_time);
 
 		if(store_frames_elapsed_time > store_frames_wcet)
 		{

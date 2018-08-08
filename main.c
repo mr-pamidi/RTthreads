@@ -4,7 +4,7 @@
 //  File name: main.c
 //
 //  Description: Manages RT Threads and timer
-//
+////
 
 #include "capture.hpp"
 #include "include.h"
@@ -25,22 +25,6 @@ pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
 //function prototyping
 void *rt_thread_dispatcher_handler(void *something);
 void timer_handler(union sigval arg);
-
-
-static const char short_options[] = ":dhmruofc:";
-
-static const struct option
-long_options[] = {
-        { "device", required_argument, NULL, 'd' },
-        { "help",   no_argument,       NULL, 'h' },
-        { "mmap",   no_argument,       NULL, 'm' },
-        { "read",   no_argument,       NULL, 'r' },
-        { "userp",  no_argument,       NULL, 'u' },
-        { "output", no_argument,       NULL, 'o' },
-        { "format", no_argument,       NULL, 'f' },
-        { "count",  required_argument, NULL, 'c' },
-        { 0, 0, 0, 0 }
-};
 
 
 static void usage(FILE *fp, int argc, char **argv)
@@ -76,63 +60,34 @@ int main( int argc, char** argv )
 		device_name = "/dev/video0";
 	}
 
-/*
 	while(1)
 	{
 		int idx;
-		char user_input_option;
+		int user_input_option;
 
-		user_input_option = getopt_long(argc, argv, short_options, long_options, &idx);
-
+		user_input_option = getopt(argc, argv, "fh");
+		
 		if (user_input_option == -1)
                 break; //exit forever loop
 
-        switch (user_input_option)
-        {
-            case 0: // getopt_long() flag
-                break;
+        	switch (user_input_option)
+        	{
 
-         //   case 'd':
-         //       dev_name = optarg;
-         //       break;
+            		case 'h':
+                		usage(stdout, argc, argv);
+                		return(SUCCESS);
 
-            case 'h':
-                usage(stdout, argc, argv);
-                return(SUCCESS);
+            		case 'f':
+                		use_v4l2_libs = true;
+                		break;
 
-         //   case 'm':
-         //       io = IO_METHOD_MMAP;
-         //       break;
+            		default:
+                		usage(stderr, argc, argv);
+                		exit(EXIT_FAILURE);
+				break;
+        	}
+    	}
 
-         //   case 'r':
-         //       io = IO_METHOD_READ;
-         //       break;
-
-         //   case 'u':
-         //       io = IO_METHOD_USERPTR;
-         //       break;
-
-         //   case 'o':
-         //       out_buf++;
-         //       break;
-
-            case 'f':
-                use_v4l2_libs = true;
-                break;
-
-         //   case 'c':
-         //       errno = 0;
-         //       frame_count = strtol(optarg, NULL, 0);
-         //       if (errno)
-         //               errno_exit(optarg);
-         //       break;
-
-            default:
-                usage(stderr, argc, argv);
-                exit(EXIT_FAILURE);
-        }
-    }
-*/
 
 	int rc = 0;
 
