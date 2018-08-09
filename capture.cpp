@@ -76,13 +76,13 @@ void *query_frames(void *cameraIdx)
 {
     int rc;
     int *dev = (int *)cameraIdx;
-    unsigned int frame_counter;
+    static unsigned int frame_counter = 0;
 
     #ifdef TIME_ANALYSIS
     //time analysis
-    struct timespec query_frames_start_time;
-    double query_frames_elapsed_time, query_frames_average_load_time, query_frames_wcet=0;
-    unsigned int missed_deadlines = 0;
+    static struct timespec query_frames_start_time;
+    static double query_frames_elapsed_time, query_frames_average_load_time, query_frames_wcet=0;
+    static unsigned int missed_deadlines = 0;
     #endif //TIME_ANALYSIS
 
     //initilize mutex to protect timer count variable
@@ -143,6 +143,7 @@ void *query_frames(void *cameraIdx)
         }
 
         query_frames_average_load_time += query_frames_elapsed_time;
+
         if(query_frames_elapsed_time > QUERY_FRAMES_INTERVAL_IN_MSEC)
         {
             ++missed_deadlines;
@@ -185,15 +186,15 @@ void *store_frames(void *params)
 
     #ifdef TIME_ANALYSIS
     //time analysis
-    struct timespec store_frames_start_time;
-    double store_frames_elapsed_time, store_frames_average_load_time, store_frames_wcet=0;
-    unsigned int missed_deadlines = 0;
+    static struct timespec store_frames_start_time;
+    static double store_frames_elapsed_time, store_frames_average_load_time, store_frames_wcet=0;
+    static unsigned int missed_deadlines = 0;
     #endif //TIME_ANALYSIS
 
     vector<int> compression_params;
     compression_params.push_back(CV_IMWRITE_PXM_BINARY);
     compression_params.push_back(1);
-    unsigned int frame_counter=0;
+    static unsigned int frame_counter=0;
 
     char ppm_file_name[20] ={};
 
