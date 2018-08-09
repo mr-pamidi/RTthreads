@@ -25,24 +25,7 @@ pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
 //function prototyping
 void *rt_thread_dispatcher_handler(void *something);
 void timer_handler(union sigval arg);
-
-
-static void usage(FILE *fp, int argc, char **argv)
-{
-        fprintf(fp,
-				 "Usage: %s /dev/videoX [options]\n\n"
-                 "Options:\n"
-                 "-d | --device name   Video device name\n"
-                 "-h | --help          Print this message\n"
-                 "-m | --mmap          Use memory mapped buffers [default]\n"
-                 "-r | --read          Use read() calls\n"
-                 "-u | --userp         Use application allocated buffers\n"
-                 "-o | --output        Outputs stream to stdout\n"
-                 "-f | --format        Force format to 640x480 GREY\n"
-                 "-c | --count         Number of frames to grab\n"
-                 "",
-                 argv[0]);
-}
+static void usage(FILE *fp, int argc, char **argv);
 
 //global variable //updated by only once, and used across the application
 bool use_v4l2_libs = false;
@@ -272,6 +255,18 @@ void timer_handler(union sigval arg)
     if(pthread_mutex_unlock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
 }
 
+
+static void usage(FILE *fp, int argc, char **argv)
+{
+	fprintf(fp,
+			 "Usage: %s [options]\n\n"
+             "Options:\n"
+             "-d 	Video device name [default: '/dev/video0']\n"
+			 "-f 	Select frame store frequency [default: 1 Hz]\n"
+             "-h   	Print this message\n"
+             "-c 	Number of frames to sotre [default:1800]\n"
+             argv[0]);
+}
 //==============================================================================
 //	End of file!
 //==============================================================================
