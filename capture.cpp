@@ -17,12 +17,6 @@ extern pthread_cond_t cond_store_frames_thread;
 extern pthread_mutex_t app_timer_counter_mutex_lock;
 extern unsigned long long app_timer_counter;
 extern bool timer_started;
-//global variables to keep track of missed deadlines
-extern bool query_frames_thread_checked_in;
-extern bool store_frames_thread_checked_in;
-//mutexes to protect
-extern pthread_mutex_t qft_checked_in_flag_mutex; //qft = query_frames_thread
-extern pthread_mutex_t sft_checked_in_flag_mutex; //stf = store_frames_thread
 
 using namespace cv;
 using namespace std;
@@ -150,10 +144,6 @@ void *query_frames(void *cameraIdx)
         }
         #endif //TIME_ANALYSIS
 
-        //set checkin flag
-        //if(pthread_mutex_lock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
-        //store_frames_thread_checked_in = true;
-        //if(pthread_mutex_unlock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
     }
 
     cvReleaseCapture(&capture);
@@ -267,10 +257,6 @@ void *store_frames(void *params)
         }
         #endif //TIME_ANALYSIS
 
-        //set checkin flag
-        //if(pthread_mutex_lock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
-        //store_frames_thread_checked_in = true;
-        //if(pthread_mutex_unlock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
     }
 
     #ifdef TIME_ANALYSIS
