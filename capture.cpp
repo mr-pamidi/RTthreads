@@ -111,7 +111,7 @@ void *query_frames(void *cameraIdx)
         //thread safe //lock frame before updating
         if(pthread_mutex_lock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
         while(!(cvGrabFrame(capture)));
-        frame = cvRetrieveFrame(capture);
+        //frame = cvRetrieveFrame(capture);
         //frame = cvQueryFrame(capture); //capture new frame
         if(pthread_mutex_unlock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
         if(!frame) break;
@@ -218,6 +218,7 @@ void *store_frames(void *params)
 
         //make sure other threads are not updating frames at this moment
         if(pthread_mutex_lock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
+        frame = cvRetrieveFrame(capture);
         mat = cvarrToMat(frame);
         if(pthread_mutex_unlock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
 
@@ -227,21 +228,25 @@ void *store_frames(void *params)
 
         sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);
 
-           try
-           {
+        try
+        {
             imwrite(ppm_file_name, mat, compression_params);
-           }
-           catch (runtime_error& ex)
-           {
+        }
+        catch (runtime_error& ex)
+        {
             printf("Exception converting image to PPM format!\n");
             exit(ERROR);
-           }
+        }
 
-           ++frame_counter;
+        cvShowImage(capture_window_title, frame);
+        char c = cvWaitKey(1);
+        if( c == 'q') break;
+        
+        ++frame_counter;
 
-           #ifdef DEBUG_MODE_ON
+        #ifdef DEBUG_MODE_ON
         syslog(LOG_WARNING, " store_frames end of write at:%lld", app_timer_counter);
-           #endif //DEBUG_MODE_ON
+        #endif //DEBUG_MODE_ON
 
         #ifdef TIME_ANALYSIS
         store_frames_elapsed_time = elapsed_time_in_msec(&store_frames_start_time);
