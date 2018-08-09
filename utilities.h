@@ -25,5 +25,5 @@ void syslog_time(unsigned int thread_id, const struct timespec *time);
 #endif //_UTILITIES_H
 
 //==============================================================================
-//	End of file!
+//    End of file!
 //==============================================================================

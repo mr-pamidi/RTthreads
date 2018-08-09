@@ -9,9 +9,6 @@
 #include "include.h"
 #include "utilities.h"
 
-//initialize
-jetson_tx2_cores jetson_tx2_cpu_cores;
-
 //------------------------------------------------------------------------------------------------------------------------------
 //  Function Name:  assign_RT_schedular_attr
 //
@@ -34,23 +31,23 @@ void assign_RT_schedular_attr(pthread_attr_t *thread_attr, struct sched_param *s
     //and, check if the assignment is successful or not
     rc = pthread_attr_init(thread_attr);
     if(rc)
-	{
-		EXIT_FAIL("pthread_attr_init");
-	}
+    {
+        EXIT_FAIL("pthread_attr_init");
+    }
 
     //Set scheduling policy to inherited
     rc = pthread_attr_setinheritsched(thread_attr, PTHREAD_EXPLICIT_SCHED);
-	if(rc)
-	{
-		EXIT_FAIL("pthread_attr_setinheritsched");
-	}
+    if(rc)
+    {
+        EXIT_FAIL("pthread_attr_setinheritsched");
+    }
 
     //Assign real-time scheduling scheme attribute
     rc = pthread_attr_setschedpolicy(thread_attr, rt_sched_policy);
-	if(rc)
-	{
-		EXIT_FAIL("pthread_attr_setschedpolicy");
-	}
+    if(rc)
+    {
+        EXIT_FAIL("pthread_attr_setschedpolicy");
+    }
 
     //assign priorty
     //***Note: The priorities are assigned as (RT_MAX - priority)
@@ -62,21 +59,19 @@ void assign_RT_schedular_attr(pthread_attr_t *thread_attr, struct sched_param *s
 
     //set schedular with SCHED_FIFO scheme
     rc = sched_setscheduler(THIS_THREAD, rt_sched_policy, sched_param);
-	if(rc)
-	{
-		EXIT_FAIL("sched_setscheduler");
-	}
-
+    if(rc)
+    {
+        EXIT_FAIL("sched_setscheduler");
+    }
 
     set_thread_cpu_affinity(THIS_THREAD, core);
 
-
     //set scheduling paramater to the thread
     rc = pthread_attr_setschedparam(thread_attr, sched_param);
-	if(rc)
-	{
-		EXIT_FAIL("pthread_attr_setschedparam");
-	}
+    if(rc)
+    {
+        EXIT_FAIL("pthread_attr_setschedparam");
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -154,7 +149,7 @@ double elapsed_time_in_msec(const struct timespec *past_time)
 
     //the funciton call should not reach here.
     //if reaches, exit!
-	EXIT_FAIL("elapsed_time_in_msec");
+    EXIT_FAIL("elapsed_time_in_msec");
 }
 
 
@@ -275,9 +270,9 @@ void set_thread_cpu_affinity(pthread_t thread, const int core)
 
     rc = sched_setaffinity(thread, sizeof(cpu_set_t), &jetson_cpu_set); //Set affinity of current thread to the defined jetson_cpu_set mask
     if(rc)
-	{
-		EXIT_FAIL("sched_setaffinity");
-	}
+    {
+        EXIT_FAIL("sched_setaffinity");
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -337,5 +332,5 @@ void syslog_time(unsigned int thread_id, const struct timespec *time)
 }
 
 //==============================================================================
-//	End of file!
+//    End of file!
 //==============================================================================
