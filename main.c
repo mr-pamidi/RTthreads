@@ -33,12 +33,6 @@ pthread_mutex_t sft_checked_in_flag_mutex; //stf = store_frames_thread
 unsigned int qft_missed_deadline_count=0;
 unsigned int sft_missed_deadline_count=0;
 
-}
-if(!store_frames_thread_checked_in)
-{
-    ++sft_missed_deadline_count; //store_frames_thread missed deadline
-    store_frames_thread_checked_in = TRUE; //set checkin flag
-}
 //function prototyping
 void *rt_thread_dispatcher_handler(void *something);
 void timer_handler(union sigval arg);
