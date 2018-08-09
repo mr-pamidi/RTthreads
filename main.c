@@ -19,9 +19,26 @@ unsigned long long app_timer_counter = 1;
 pthread_mutex_t app_timer_counter_mutex_lock;
 pthread_mutexattr_t app_timer_counter_mutex_lock_attr;
 
+//cond wait/signal for synchronization
 pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
 
+//global variables to keep track of missed deadlines
+bool query_frames_thread_checked_in = false;
+bool store_frames_thread_checked_in = false;
+//mutexes to protect
+pthread_mutex_t qft_checked_in_flag_mutex; //qft = query_frames_thread
+pthread_mutex_t sft_checked_in_flag_mutex; //stf = store_frames_thread
+//missed deadline counters
+unsigned int qft_missed_deadline_count=0;
+unsigned int sft_missed_deadline_count=0;
+
+}
+if(!store_frames_thread_checked_in)
+{
+    ++sft_missed_deadline_count; //store_frames_thread missed deadline
+    store_frames_thread_checked_in = TRUE; //set checkin flag
+}
 //function prototyping
 void *rt_thread_dispatcher_handler(void *something);
 void timer_handler(union sigval arg);
@@ -101,6 +118,7 @@ int main( int argc, char** argv )
     closelog();
 
     //print to terminal
+    printf("No.of missed deadlines:\nquery_frames_thread:%d\nstore_frames_thread%d", qft_missed_deadline_count, qft_missed_deadline_count);
     printf("Exiting..!\n");
     return 0;
 }
@@ -176,6 +194,10 @@ void *rt_thread_dispatcher_handler(void *something)
     {
         //initialize, start querying frames, and save a sample frame, to make sure device is working..!
         initialize_device_use_openCV();
+        bool query_frames_thread_checked_in = false;
+        bool store_frames_thread_checked_in = false;
+        //mutexes to protect checkin flag
+        if(pthread_mutex_init(&qft_checked_in_flag_mutex, NULL)) EXIT_FAIL("pthread_mutex_init"); //qft = query_frames_thread
         //create query_frames_thread
         syslog(LOG_WARNING,"\n query_frames_thread dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
         query_frames_thread_dispatched = true;
@@ -185,6 +207,8 @@ void *rt_thread_dispatcher_handler(void *something)
             EXIT_FAIL("pthread_create");
         }
 
+        //mutex to protect checkin flag
+        if(pthread_mutex_init(&sft_checked_in_flag_mutex, NULL)) EXIT_FAIL("pthread_mutex_init"); //stf = store_frames_thread
         //create store_frames_thread
         syslog(LOG_WARNING,"\n store_frames_thread dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
         store_frames_thread_dispatched = true;
@@ -220,7 +244,8 @@ void *rt_thread_dispatcher_handler(void *something)
 //*****************************************
 void timer_handler(union sigval arg)
 {
-    int rc;
+    static unsigned long long next_query_frames_thread_deadline = QUERY_FRAMES_INTERVAL_IN_MSEC + 1;
+    static unsigned long long next_store_frames_thread_deadline = DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC + 1;
 
     //accquire mutex lock on timer counter variable
     if(pthread_mutex_lock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
@@ -242,13 +267,47 @@ void timer_handler(union sigval arg)
         {
             //signal  query_frames_thread
             if(pthread_cond_signal(&cond_query_frames_thread)) EXIT_FAIL("pthread_cond_signal");
+            //reset checkin flag
+            if(pthread_mutex_lock(&qft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
+            query_frames_thread_checked_in = false;
+            if(pthread_mutex_unlock(&qft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
+            //update time to check missed deadlines
+            next_query_frames_thread_deadline = app_timer_counter + QUERY_FRAMES_INTERVAL_IN_MSEC + 1; //next deadline check time
         }
+
         //run at 1 Hz
-        if((store_frames_thread_dispatched) && ((app_timer_counter % STORE_FRAMES_INTERVAL_IN_MSEC) == 0))
+        if((store_frames_thread_dispatched) && ((app_timer_counter % DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC) == 0))
         {
             //signal store_frames_thread
             if(pthread_cond_signal(&cond_store_frames_thread)) EXIT_FAIL("pthread_cond_signal");
+            //reset checkin flag
+            if(pthread_mutex_lock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
+            store_frames_thread_checked_in = false;
+            if(pthread_mutex_unlock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
+            //update time to check missed deadlines
+            next_store_frames_thread_deadline = app_timer_counter + DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC + 1;
         }
+
+        //track missed deadlines
+        if(app_timer_counter == next_query_frames_thread_deadline)
+        {
+            if(!query_frames_thread_checked_in)
+            {
+                ++qft_missed_deadline_count; //query_frames_thread missed deadline
+                query_frames_thread_checked_in = TRUE; //set checkin flag
+            }
+        }
+
+        //track missed deadlines
+        if(app_timer_counter == next_store_frames_thread_deadline)
+        {
+            if(!store_frames_thread_checked_in)
+            {
+                ++sft_missed_deadline_count; //store_frames_thread missed deadline
+                store_frames_thread_checked_in = TRUE; //set checkin flag
+            }
+        }
+
     }
 
     //relinquish mutex lock on timer counter variable

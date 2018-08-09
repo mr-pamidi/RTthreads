@@ -37,14 +37,15 @@
 //1 refers to (RT_MAX - 1) priority,
 //2 refers to (RT_MAX - 2) priority, and so on..
 #define SCHED_FIFO_MAX_PRIORITY         (0)   //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY))
-#define TIMER_THREAD_PRIORITY            (SCHED_FIFO_MAX_PRIORITY) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY))
+#define TIMER_THREAD_PRIORITY           (SCHED_FIFO_MAX_PRIORITY) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY))
 #define STORE_FRAMES_THREAD_PRIORITY    (SCHED_FIFO_MAX_PRIORITY + 1) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 1))
 #define QUERY_FRAMES_THREAD_PRIORITY    (SCHED_FIFO_MAX_PRIORITY + 2) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 2))
-#define RT_THREAD_DISPATCHER_PRIORITY    (SCHED_FIFO_MAX_PRIORITY)// + 5) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 5))
+#define RT_THREAD_DISPATCHER_PRIORITY   (SCHED_FIFO_MAX_PRIORITY)// + 5) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 5))
 
 //Thread indexes
-#define QUERY_FRAMES_THREAD_IDX      (1)
-#define STORE_FRAMES_THREAD_IDX        (2)
+#define QUERY_FRAMES_THREAD_IDX     (0)
+#define STORE_FRAMES_THREAD_IDX     (1)
+
 //macros for time functions
 #define MSEC_PER_SEC    (1000)              //milli seconds per second
 #define USEC_PER_SEC    (1000*1000)            //micro seconds per second
@@ -54,18 +55,18 @@
 #define NSEC_PER_USEC   (1000)              //nano seconds per micro seconds
 
 //1000 Hz
-#define APP_TIMER_INTERVAL_IN_MSEC    1 //timer period
+#define APP_TIMER_INTERVAL_IN_MSEC              (1) //timer period 1ms resolution
 //30 Hz
-#define QUERY_FRAMES_INTERVAL_IN_MSEC    (MSEC_PER_SEC - 50)//33 //frame query
+#define QUERY_FRAMES_INTERVAL_IN_MSEC           ((unsigned)(MSEC_PER_SEC/30)) //33 ms frame query
 //1 Hz
-#define STORE_FRAMES_INTERVAL_IN_MSEC    (MSEC_PER_SEC) //store frames
+#define DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC   (MSEC_PER_SEC) //store frames
 
 //other utilities
 #define TRUE        (1)
 #define FALSE       (0)
 #define ERROR       (-1)
 #define SUCCESS     (0)
-#define THIS_THREAD    (0)
+#define THIS_THREAD (0)
 
 //user defined thread indexes
 typedef struct
@@ -84,11 +85,11 @@ typedef struct
 //macro for exit(-1) along with debug details
 #define EXIT_FAIL(fun_name) {\
     fprintf(stderr,\
-            "\n********** Run time ERROR **************\
-             \nFile: \"%s\"                        \
-             \nLine: %d                            \
-             \nsymbol: %s                        \
-             \nError: %s                            \
+            "\n********** Run time ERROR ************** \
+             \nFile: \"%s\"                             \
+             \nLine: %d                                 \
+             \nsymbol: %s                               \
+             \nError: %s                                \
              \n\nExiting Application...\n\n", __FILE__, __LINE__, fun_name, strerror(errno));\
     exit(ERROR);\
 }
