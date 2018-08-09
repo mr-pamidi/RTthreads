@@ -220,13 +220,17 @@ void *rt_thread_dispatcher_handler(void *something)
 //*****************************************
 void timer_handler(union sigval arg)
 {
-    volatile static struct timespec timer_start_time;
-    volatile static double timer_elapsed_time;
+    #ifdef TIMER_TIME_ANALYSIS
+    static struct timespec timer_start_time;
+    static double timer_wcet=0;
+    #endif
 
     //accquire mutex lock on timer counter variable
     if(pthread_mutex_lock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
 
+    #ifdef TIMER_TIME_ANALYSIS
     clock_gettime(CLOCK_REALTIME, &timer_start_time);
+    #endif
     //update timer counter
     app_timer_counter += APP_TIMER_INTERVAL_IN_MSEC;
 
@@ -258,8 +262,13 @@ void timer_handler(union sigval arg)
     //relinquish mutex lock on timer counter variable
     if(pthread_mutex_unlock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
 
-    timer_elapsed_time = elapsed_time_in_msec(&timer_start_time);
-    syslog(LOG_WARNING, "Timer:%lf", timer_elapsed_time);
+    #ifdef TIMER_TIME_ANALYSIS
+    if(timer_wcet < elapsed_time_in_msec(&timer_start_time))
+    {
+        timer_wcet = elapsed_time_in_msec(&timer_start_time);
+        syslog(LOG_WARNING, " =====> Timer WCET:%lf", timer_wcet);
+    }
+    #endif
 }
 
 
