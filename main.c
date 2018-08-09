@@ -261,7 +261,7 @@ void timer_handler(union sigval arg)
         	if(pthread_cond_signal(&cond_query_frames_thread)) EXIT_FAIL("pthread_cond_signal");
     	}
 		//run at 1 Hz
-		if((store_frames_thread_dispatched) && (app_timer_counter % STORE_FRAMES_INTERVAL_IN_MSEC) == 0))
+		if((store_frames_thread_dispatched) && ((app_timer_counter % STORE_FRAMES_INTERVAL_IN_MSEC) == 0))
 		{
 			//signal store_frames_thread
         	if(pthread_cond_signal(&cond_store_frames_thread)) EXIT_FAIL("pthread_cond_signal");
