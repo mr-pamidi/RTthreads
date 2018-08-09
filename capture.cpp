@@ -82,6 +82,7 @@ void *query_frames(void *cameraIdx)
     //time analysis
     struct timespec query_frames_start_time;
     double query_frames_elapsed_time, query_frames_average_load_time, query_frames_wcet=0;
+    unsigned int missed_deadlines = 0;
     #endif //TIME_ANALYSIS
 
     //initilize mutex to protect timer count variable
@@ -142,12 +143,12 @@ void *query_frames(void *cameraIdx)
         }
 
         query_frames_average_load_time += query_frames_elapsed_time;
-        #endif //TIME_ANALYSIS
-
         if(query_frames_elapsed_time > QUERY_FRAMES_INTERVAL_IN_MSEC)
         {
-            static unsigned int missed_deadlines++;
+            ++missed_deadlines;
         }
+        #endif //TIME_ANALYSIS
+
         //set checkin flag
         //if(pthread_mutex_lock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
         //store_frames_thread_checked_in = true;
@@ -186,6 +187,7 @@ void *store_frames(void *params)
     //time analysis
     struct timespec store_frames_start_time;
     double store_frames_elapsed_time, store_frames_average_load_time, store_frames_wcet=0;
+    unsigned int missed_deadlines = 0;
     #endif //TIME_ANALYSIS
 
     vector<int> compression_params;
@@ -257,12 +259,13 @@ void *store_frames(void *params)
         }
 
         store_frames_average_load_time += store_frames_elapsed_time;
-        #endif //TIME_ANALYSIS
 
         if(store_frames_elapsed_time > DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC)
         {
-            static unsigned int missed_deadlines++;
+            ++missed_deadlines;
         }
+        #endif //TIME_ANALYSIS
+
         //set checkin flag
         //if(pthread_mutex_lock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
         //store_frames_thread_checked_in = true;
