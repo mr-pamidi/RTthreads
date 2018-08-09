@@ -25,12 +25,12 @@ using namespace std;
 const char capture_window_title[] = "Project-Trails";
 
 //global capture variables
-CvCapture* capture;
-IplImage* frame;
-pthread_mutex_t frame_mutex_lock;
-pthread_mutexattr_t frame_mutex_lock_attr;
+static CvCapture* capture;
+static IplImage* frame;
+static pthread_mutex_t frame_mutex_lock;
+static pthread_mutexattr_t frame_mutex_lock_attr;
 
-int exit_application = FALSE;
+static int exit_application = FALSE;
 
 void initialize_device_use_openCV(void)
 {
@@ -110,7 +110,9 @@ void *query_frames(void *cameraIdx)
 
         //thread safe //lock frame before updating
         if(pthread_mutex_lock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
-        frame = cvQueryFrame(capture); //capture new frame
+        while(!(cvGrabFrame(capture)));
+        frame = cvRetrieveFrame(capture);
+        //frame = cvQueryFrame(capture); //capture new frame
         if(pthread_mutex_unlock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
         if(!frame) break;
 
