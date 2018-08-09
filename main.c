@@ -112,7 +112,7 @@ int main( int argc, char** argv )
     closelog();
 
     //print to terminal
-    printf("No.of missed deadlines:\nquery_frames_thread:%d\nstore_frames_thread%d", qft_missed_deadline_count, qft_missed_deadline_count);
+    printf("No.of missed deadlines:\nquery_frames_thread:%d\nstore_frames_thread%d\n", qft_missed_deadline_count, qft_missed_deadline_count);
     printf("Exiting..!\n");
     return 0;
 }
@@ -238,8 +238,8 @@ void *rt_thread_dispatcher_handler(void *something)
 //*****************************************
 void timer_handler(union sigval arg)
 {
-    static unsigned long long next_query_frames_thread_deadline = QUERY_FRAMES_INTERVAL_IN_MSEC + 1;
-    static unsigned long long next_store_frames_thread_deadline = DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC + 1;
+    static unsigned long long next_query_frames_thread_deadline = 2 * QUERY_FRAMES_INTERVAL_IN_MSEC + 1;
+    static unsigned long long next_store_frames_thread_deadline = 2 * DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC + 1;
 
     //accquire mutex lock on timer counter variable
     if(pthread_mutex_lock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
@@ -317,7 +317,7 @@ static void usage(FILE *fp, int argc, char **argv)
              "-d     Video device name [default: '/dev/video0']\n"
              "-f     Select frame store frequency [default: 1 Hz]\n"
              "-h       Print this message\n"
-             "-c     Number of frames to sotre [default:1800]\n"
+             "-c     Number of frames to sotre [default:1800]\n",
              argv[0]);
 }
 //==============================================================================

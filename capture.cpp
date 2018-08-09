@@ -144,10 +144,14 @@ void *query_frames(void *cameraIdx)
         query_frames_average_load_time += query_frames_elapsed_time;
         #endif //TIME_ANALYSIS
 
+        if(query_frames_elapsed_time > QUERY_FRAMES_INTERVAL_IN_MSEC)
+        {
+            static unsigned int missed_deadlines++;
+        }
         //set checkin flag
-        if(pthread_mutex_lock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
-        store_frames_thread_checked_in = true;
-        if(pthread_mutex_unlock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
+        //if(pthread_mutex_lock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
+        //store_frames_thread_checked_in = true;
+        //if(pthread_mutex_unlock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
     }
 
     cvReleaseCapture(&capture);
@@ -161,7 +165,7 @@ void *query_frames(void *cameraIdx)
     {
         query_frames_average_load_time /= frame_counter;
     }
-    syslog(LOG_WARNING, " query_frames_thread execuiton results, frames:%d, WCET:%lf, Average:%lf", frame_counter, query_frames_wcet, query_frames_average_load_time);
+    syslog(LOG_WARNING, " query_frames_thread execuiton results, frames:%d, WCET:%lf, Average:%lf, Missed Deadlines:%d", frame_counter, query_frames_wcet, query_frames_average_load_time, missed_deadlines);
     #endif //TIME_ANALYSIS
 
     #ifdef DEBUG_MODE_ON
@@ -255,10 +259,14 @@ void *store_frames(void *params)
         store_frames_average_load_time += store_frames_elapsed_time;
         #endif //TIME_ANALYSIS
 
+        if(store_frames_elapsed_time > DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC)
+        {
+            static unsigned int missed_deadlines++;
+        }
         //set checkin flag
-        if(pthread_mutex_lock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
-        store_frames_thread_checked_in = true;
-        if(pthread_mutex_unlock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
+        //if(pthread_mutex_lock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
+        //store_frames_thread_checked_in = true;
+        //if(pthread_mutex_unlock(&sft_checked_in_flag_mutex)) EXIT_FAIL("pthread_mutex_lock");
     }
 
     #ifdef TIME_ANALYSIS
@@ -266,7 +274,7 @@ void *store_frames(void *params)
     {
         store_frames_average_load_time /= frame_counter;
     }
-    syslog(LOG_WARNING, " store_frames_thread execuiton results, frames:%d, WCET:%lf, Average:%lf", frame_counter, store_frames_wcet, store_frames_average_load_time);
+    syslog(LOG_WARNING, " store_frames_thread execuiton results, frames:%d, WCET:%lf, Average:%lf, Missed Deadlines:%d", frame_counter, store_frames_wcet, store_frames_average_load_time, missed_deadlines);
     #endif //TIME_ANALYSIS
 
     #ifdef DEBUG_MODE_ON

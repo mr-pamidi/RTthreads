@@ -57,7 +57,7 @@
 //1000 Hz
 #define APP_TIMER_INTERVAL_IN_MSEC              (1) //timer period 1ms resolution
 //30 Hz
-#define QUERY_FRAMES_INTERVAL_IN_MSEC           ((unsigned)(MSEC_PER_SEC/30)) //33 ms frame query
+#define QUERY_FRAMES_INTERVAL_IN_MSEC           (33) //33 ms frame query
 //1 Hz
 #define DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC   (MSEC_PER_SEC) //store frames
 
