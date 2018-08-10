@@ -12,7 +12,7 @@
 #include "v4l2_capture.h"
 
 // /dev/videoX name
-char *device_name=NULL;
+char *device_name="/dev/video0";
 
 //global time variable, and a mutex to restrict access to it
 unsigned long long app_timer_counter = 1;
@@ -33,27 +33,21 @@ bool use_v4l2_libs = false;
 bool query_frames_thread_dispatched = false;
 bool store_frames_thread_dispatched = false;
 bool timer_started = false;
-
+unsigned int store_frames_frequency = 1; //default value 1
+bool live_camera_view = false;
 //**********************************
 //  Funcation Name:     main
 //**********************************
 int main( int argc, char** argv )
 {
-    if(argc >1)
-    {
-        device_name = argv[1];
-    }
-    else
-    {
-        device_name = "/dev/video0";
-    }
 
+	//user options
     while(1)
     {
         int idx;
         int user_input_option;
 
-        user_input_option = getopt(argc, argv, "fh");
+        user_input_option = getopt(argc, argv, "d:f:hl:s:");
 
         if (user_input_option == -1)
                 break; //exit forever loop
@@ -61,13 +55,37 @@ int main( int argc, char** argv )
             switch (user_input_option)
             {
 
-                    case 'h':
+					case 'd':
+						//ignoring device name changes for now
+						break;
+
+					case 'f':
+	                    store_frames_frequency = atoi(optarg);
+						//validate the frequency parameter
+						if(store_frames_frequency < 1)
+						{
+							store_frames_frequency = 1; //reset to one
+							fprintf(stdout, "Resetting frame store frequency to 1 Hz (Min allowed)! \n");
+						}
+						else if(store_frames_frequency > 10)
+						{
+							store_frames_frequency = 10; //not suppporting more than 10Hz
+							fprintf(stdout, "Resetting frame store frequency to 10 Hz (Max allowed)! \n");
+						}
+
+	                    break;
+
+					case 'h':
                         usage(stdout, argc, argv);
                         return(SUCCESS);
 
-                    case 'f':
-                        use_v4l2_libs = true;
-                        break;
+					case 'l':
+						live_camera_view = (bool)atoi(optarg);
+						break;
+
+					case 's':
+						//not supporting at the moment
+						break;
 
                     default:
                         usage(stderr, argc, argv);
@@ -250,8 +268,8 @@ void timer_handler(union sigval arg)
             if(pthread_cond_signal(&cond_query_frames_thread)) EXIT_FAIL("pthread_cond_signal");
         }
 
-        //run at 1 Hz
-        if((store_frames_thread_dispatched) && ((app_timer_counter % DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC) == 0))
+        //run at variable frequency from 1 Hz to 10 Hz
+        if((store_frames_thread_dispatched) && ((app_timer_counter % (DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC/store_frames_frequency)) == 0))
         {
             //signal store_frames_thread
             if(pthread_cond_signal(&cond_store_frames_thread)) EXIT_FAIL("pthread_cond_signal");
@@ -278,9 +296,10 @@ static void usage(FILE *fp, int argc, char **argv)
              "Usage: %s [options]\n\n"
              "Options:\n"
              "-d     Video device name [default: '/dev/video0']\n"
-             "-f     Select frame store frequency [default: 1 Hz]\n"
-             "-h       Print this message\n"
-             "-c     Number of frames to sotre [default:1800]\n",
+             "-f     Select frame store frequency [Min: 1 Hz, Max: 10Hz, Default: 1 Hz]\n"
+             "-h     Print this message\n"
+			 "-l 	 Live camera view [default: false]"
+             "-s     Number of frames to sotre [default: 1800]\n",
              argv[0]);
 }
 //==============================================================================
