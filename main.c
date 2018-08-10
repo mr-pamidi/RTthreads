@@ -57,7 +57,7 @@ int main( int argc, char** argv )
 
 					case 'd':
 						//ignoring device name changes for now
-						break
+						break;
 
 					case 'f':
 	                    store_frames_frequency = atoi(optarg);
@@ -83,7 +83,7 @@ int main( int argc, char** argv )
 						live_camera_view = (bool)atoi(optarg);
 						break;
 
-					case 's'
+					case 's':
 						//not supporting at the moment
 						break;
 
