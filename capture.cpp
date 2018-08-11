@@ -256,7 +256,7 @@ void *store_frames(void *params)
     static char ppm_file_name[20] = {};
     static char ppm_header1[64] = "#header1";
     static char ppm_header2[64] = "#header2";
-    static int ppm_fd;
+    static int ppm_fd, ppm_file_size;
 
 	//openCV supported Mat class data structure
     Mat openCV_store_frames_mat;
@@ -305,12 +305,13 @@ void *store_frames(void *params)
 		//.ppm file name
         sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);
         //write ppm header
-        ppm_fd = open(ppm_file_name, O_WRONLY | O_NONBLOCK | O_CREAT, 00666);
+        ppm_fd = fopen(ppm_file_name, O_WRONLY | O_NONBLOCK | O_CREAT, 00666);
         write(ppm_fd, ppm_header1, sizeof(ppm_header1));
         write(ppm_fd, ppm_header2, sizeof(ppm_header2));
+        while(write(ppm_fd, openCV_store_frames_mat, sizeof(openCV_store_frames_mat)));
         //close file
         close(ppm_fd);
-
+/*
 		//save the frames
         try
         {
@@ -322,7 +323,7 @@ void *store_frames(void *params)
             printf("Exception converting image to PPM format!\n");
             exit(ERROR);
         }
-
+*/
 		//if this bit is set, most recent frames are already being displayed by query_frames_thread
 		if(!live_camera_view)
 		{
