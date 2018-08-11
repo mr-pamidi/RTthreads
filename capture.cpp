@@ -64,7 +64,7 @@ void initialize_device_use_openCV(void)
     cvShowImage(capture_window_title, retrieve_frame);
     //wait for user key input
     char c = cvWaitKey(33);
-    if(c == 'q')
+    if(c == 'q' || c == 27)
     {
         exit(SUCCESS);
     }
@@ -80,7 +80,7 @@ void initialize_device_use_openCV(void)
     //try writing a dummy file, and see if the write was successful or not
     try
     {
-        imwrite("dummy.ppm", openCV_store_frames_mat, compression_params);
+        imwrite("dump.ppm", openCV_store_frames_mat, compression_params);
     }
     catch (runtime_error& ex)
     {
@@ -170,7 +170,7 @@ void *query_frames(void *cameraIdx)
             //show recently retrieved frame and wait for user key input
             cvShowImage(capture_window_title, retrieve_frame);
             char c = cvWaitKey(1);
-            if( c == 'q') break;
+            if( c == 'q' || c == 27) break;
         }
 
         #ifdef DEBUG_MODE_ON
@@ -361,7 +361,7 @@ void *store_frames(void *params)
             //show image and wait for 1ms to receive user input
             cvShowImage(capture_window_title, retrieve_frame);
             char c = cvWaitKey(1);
-            if( c == 'q') break;
+            if( c == 'q' || c == 27) break;
         }
 
         ++frame_counter;
