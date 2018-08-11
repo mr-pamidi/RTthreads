@@ -49,9 +49,8 @@ static int exit_application = FALSE;
 //------------------------------------------------------------------------------------------------------------------------------
 void initialize_device_use_openCV(void)
 {
-    CvCapture capture;
+    CvCapture *capture;
     IplImage *frame;
-    int i=0;
     //start capturing frames from /dev/video0
     capture = cvCreateCameraCapture(0);
     //set capture properties
@@ -59,22 +58,18 @@ void initialize_device_use_openCV(void)
     cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, FRAME_VRES);
     cvNamedWindow(capture_window_title, CV_WINDOW_AUTOSIZE);
 
-    //loop, and grab first 30 frames to initizlize the device
+    //grab first a frame to initizlize the device
     //sanity check!
-    for(i=0; i<30; ++i)
-    {
-        //grab and retrieve a frame
-        frame = cvQueryFrame(capture);
-        if(!frame) EXIT_FAIL("Problem initializing the device");
+    frame = cvQueryFrame(capture);
+    if(!frame) EXIT_FAIL("Problem initializing the device");
 
-        //show the recently grabbed frame
-        cvShowImage(capture_window_title, frame);
-        //wait for user key input
-        char c = cvWaitKey(33);
-        if(c == 'q')
-        {
-            exit(SUCCESS);
-        }
+    //show the recently grabbed frame
+    cvShowImage(capture_window_title, frame);
+    //wait for user key input
+    char c = cvWaitKey(33);
+    if(c == 'q')
+    {
+        exit(SUCCESS);
     }
 
     //convert IplImage type to Mat type
