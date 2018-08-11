@@ -166,7 +166,7 @@ void *rt_thread_dispatcher_handler(void *something)
     //initialize timer period values
     timer_period.it_interval.tv_sec = (APP_TIMER_INTERVAL_IN_MSEC / MSEC_PER_SEC);
     timer_period.it_interval.tv_nsec = (APP_TIMER_INTERVAL_IN_MSEC * NSEC_PER_MSEC);
-    timer_period.it_value.tv_sec = timer_period.it_interval.tv_sec + 2; //2 seconds delay before start
+    timer_period.it_value.tv_sec = timer_period.it_interval.tv_sec; //start time
     timer_period.it_value.tv_nsec = timer_period.it_interval.tv_nsec;
 
     //create timer
@@ -261,7 +261,7 @@ void timer_handler(union sigval arg)
     //use openCV APIs
     else
     {
-        //run at 30Hz
+        //run at 20Hz
         if((query_frames_thread_dispatched) && ((app_timer_counter % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0))
         {
             //signal  query_frames_thread
