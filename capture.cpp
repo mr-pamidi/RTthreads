@@ -49,22 +49,19 @@ static int exit_application = FALSE;
 //------------------------------------------------------------------------------------------------------------------------------
 void initialize_device_use_openCV(void)
 {
-    CvCapture *capture;
-    IplImage *frame;
     //start capturing frames from /dev/video0
-    capture = cvCreateCameraCapture(0);
+    grab_frame = cvCreateCameraCapture(0);
     //set capture properties
-    cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH, FRAME_HRES);
-    cvSetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT, FRAME_VRES);
+    cvSetCaptureProperty(grab_frame, CV_CAP_PROP_FRAME_WIDTH, FRAME_HRES);
+    cvSetCaptureProperty(grab_frame, CV_CAP_PROP_FRAME_HEIGHT, FRAME_VRES);
     cvNamedWindow(capture_window_title, CV_WINDOW_AUTOSIZE);
 
-    //grab first a frame to initizlize the device
-    //sanity check!
-    frame = cvQueryFrame(capture);
-    if(!frame) EXIT_FAIL("Problem initializing the device");
+    //grab and retrieve a frame
+    retrieve_frame = cvQueryFrame(grab_frame);
+    if(!retrieve_frame) EXIT_FAIL("Problem initializing the device");
 
     //show the recently grabbed frame
-    cvShowImage(capture_window_title, frame);
+    cvShowImage(capture_window_title, retrieve_frame);
     //wait for user key input
     char c = cvWaitKey(33);
     if(c == 'q')
@@ -73,7 +70,7 @@ void initialize_device_use_openCV(void)
     }
 
     //convert IplImage type to Mat type
-    Mat openCV_store_frames_mat = cvarrToMat(frame);
+    Mat openCV_store_frames_mat = cvarrToMat(retrieve_frame);
 
     //paramaters to save .ppm file
     vector<int> compression_params;
@@ -83,7 +80,7 @@ void initialize_device_use_openCV(void)
     //try writing a dummy file, and see if the write was successful or not
     try
     {
-        imwrite("dump.ppm", openCV_store_frames_mat, compression_params);
+        imwrite("dummy.ppm", openCV_store_frames_mat, compression_params);
     }
     catch (runtime_error& ex)
     {
@@ -341,7 +338,7 @@ void *store_frames(void *params)
         //append headers to the .ppm file
         CLEAR_MEMORY(ppm_header1); //remove previous header data
         //write time-stamp to header string
-        sprintf(ppm_header1, "\n #Frame %d captured at %lld:%lld (sec:usec)", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
+        sprintf(ppm_header1, "\n#Frame %d captured at %lld:%lld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
         write(ppm_fd, ppm_header1, strlen(ppm_header1));
         write(ppm_fd, ppm_header2, strlen(ppm_header2));
 
