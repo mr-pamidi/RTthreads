@@ -253,7 +253,10 @@ void *store_frames(void *params)
     compression_params.push_back(1);
     static unsigned int frame_counter=0;
 	//.ppm file name variable
-    static char ppm_file_name[20] ={};
+    static char ppm_file_name[20] = {};
+    static char ppm_header1[64] = "#header1";
+    static char ppm_header2[64] = "#header2";
+    static int ppm_fd;
 
 	//openCV supported Mat class data structure
     Mat openCV_store_frames_mat;
@@ -301,6 +304,12 @@ void *store_frames(void *params)
 
 		//.ppm file name
         sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);
+        //write ppm header
+        ppm_fd = open(ppm_file_name, O_WRONLY | O_NONBLOCK | O_CREAT, 00666);
+        write(ppm_fd, ppm_header1, sizeof(ppm_header1));
+        write(ppm_fd, ppm_header2, sizeof(ppm_header2));
+        //close file
+        close(ppm_fd);
 
 		//save the frames
         try
