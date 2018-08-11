@@ -256,7 +256,9 @@ void *store_frames(void *params)
     static char ppm_file_name[20] = {};
     static char ppm_header1[64] = "#header1";
     static char ppm_header2[64] = "#header2";
-    static int ppm_fd, ppm_file_size;
+    static int ppm_fd, ppm_file_size, dump_fd;
+    static unsigned int frame_data_size = 0xff;
+    static char buffer[frame_data_size] = {};
 
 	//openCV supported Mat class data structure
     Mat openCV_store_frames_mat;
@@ -302,20 +304,10 @@ void *store_frames(void *params)
         syslog(LOG_WARNING, " store_frames unlocked frame_mutex at %lld", app_timer_counter);
         #endif
 
-		//.ppm file name
-        sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);
-        //write ppm header
-        ppm_fd = fopen(ppm_file_name, O_WRONLY | O_NONBLOCK | O_CREAT, 00666);
-        write(ppm_fd, ppm_header1, sizeof(ppm_header1));
-        write(ppm_fd, ppm_header2, sizeof(ppm_header2));
-        while(write(ppm_fd, openCV_store_frames_mat, sizeof(openCV_store_frames_mat)));
-        //close file
-        close(ppm_fd);
-/*
-		//save the frames
+		//save the frames as ppm
         try
         {
-            imwrite(ppm_file_name, openCV_store_frames_mat, compression_params);
+            imwrite("dump.ppm", openCV_store_frames_mat, compression_params);
         }
 		//catch any exceptions, and exit the application if there are any issue while storing the .ppm file
         catch (runtime_error& ex)
@@ -323,7 +315,27 @@ void *store_frames(void *params)
             printf("Exception converting image to PPM format!\n");
             exit(ERROR);
         }
-*/
+
+        //.ppm file name
+        sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);
+        //apend ppm header
+        ppm_fd = open(ppm_file_name, O_RDWR | O_NONBLOCK | O_CREAT, 00666);
+        write(ppm_fd, ppm_header1, sizeof(ppm_header1));
+        write(ppm_fd, ppm_header2, sizeof(ppm_header2));
+
+        dump_fd = open("dump.ppm", O_RDONLY | O_NONBLOCK | O_CREAT, 00666);
+        //read dump.ppm file contents
+        while(read(dump_fd, buffer, frame_data_size)
+        {
+            write(ppm_fd, buffer, frame_data_size);
+            CLEAR_MEMORY(buffer);
+        }
+        //write last few bytes before the EOF
+        write(ppm_fd, buffer, frame_data_size);
+        //close files
+        close(ppm_fd);
+        close(dump_fd);
+
 		//if this bit is set, most recent frames are already being displayed by query_frames_thread
 		if(!live_camera_view)
 		{
