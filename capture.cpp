@@ -256,7 +256,7 @@ void *store_frames(void *params)
     static struct timeval frame_timestamp;
     static char ppm_file_name[20] = {};
     static char ppm_header1[64] = "";
-    static char ppm_header2[] = "#\nTARGET: Linux tegra-ubuntu 4.4.38-tegra #1 SMP PREEMPT Thu May 17 00:15:19 PDT 2018 aarch64 aarch64 aarch64 GNU/Linux";
+    static char ppm_header2[] = "\n#TARGET: Linux tegra-ubuntu 4.4.38-tegra #1 SMP PREEMPT Thu May 17 00:15:19 PDT 2018 aarch64 aarch64 aarch64 GNU/Linux";
     static int ppm_fd, ppm_file_size, dump_fd;
     static const unsigned int frame_data_size = 0xff;
     static char buffer[frame_data_size] = {};
@@ -293,7 +293,7 @@ void *store_frames(void *params)
         //make sure other threads are not updating frames at this moment
         if(pthread_mutex_lock(&frame_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
         //get timestamp
-        gettimeofday(frame_timestamp, NULL);
+        gettimeofday(&frame_timestamp, NULL);
         //if this bit is set, most recent frame is already retrieved by the query_frames_thread
         if(!live_camera_view)
         {
@@ -338,7 +338,7 @@ void *store_frames(void *params)
         //append headers to the .ppm file
         CLEAR_MEMORY(ppm_header1); //remove previous header data
         //write time-stamp to header string
-        sprintf(ppm_header1, "#\nFrame %d captured at %lld:%lld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
+        sprintf(ppm_header1, "\n#Frame %d captured at %lld:%lld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
         write(ppm_fd, ppm_header1, strlen(ppm_header1));
         write(ppm_fd, ppm_header2, strlen(ppm_header2));
 
