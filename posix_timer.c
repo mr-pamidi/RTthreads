@@ -10,15 +10,15 @@
 #include "posix_timer.h"
 
 //global timer variable
-unsigned long long app_timer_counter = 1;
+extern unsigned long long app_timer_counter;
 
 //global time variable mutex to restrict access to it
 extern pthread_mutex_t app_timer_counter_mutex_lock;
 extern pthread_mutexattr_t app_timer_counter_mutex_lock_attr;
 
 //cond wait/signal for synchronization
-pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
-pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
+extern pthread_cond_t cond_query_frames_thread;
+extern pthread_cond_t cond_store_frames_thread;
 
 //global variable //updated by only once, and used across the application for sync
 extern bool use_v4l2_libs;

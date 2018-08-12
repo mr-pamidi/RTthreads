@@ -9,9 +9,10 @@
 
 #include "capture.hpp"
 #include "include.h"
+#include "posix_timer.h"
 #include "utilities.h"
 
-//global variables
+//global variable //updated once, and used across the application for sync
 extern pthread_cond_t cond_query_frames_thread;
 extern pthread_cond_t cond_store_frames_thread;
 extern pthread_mutex_t app_timer_counter_mutex_lock;
@@ -19,6 +20,7 @@ extern unsigned long long app_timer_counter;
 extern bool timer_started;
 extern unsigned int store_frames_frequency;
 extern bool live_camera_view;
+extern unsigned int compress_ratio; //default:0 no compression
 
 //cpp namespaces
 using namespace cv;
@@ -261,14 +263,10 @@ void *store_frames(void *params)
     //openCV supported Mat class data structure
     Mat openCV_store_frames_mat;
 
-    //if compression is allowed
-    if(compress_ratio)
-    {
-        //parameters to save the frame as compressed .png file
-        vector<int> compress_params;
-        compress_params.push_back(CV_IMWRITE_PXM_BINARY);
-        compress_params.push_back(compress_ratio);
-    }
+    //parameters to save the frame as compressed .png file
+    vector<int> compress_params;
+    compress_params.push_back(CV_IMWRITE_PXM_BINARY);
+    compress_params.push_back(compress_ratio); //user selectable compression ration
 
     //parameters to save the frame as .ppm file
     vector<int> ppm_params;
@@ -334,7 +332,7 @@ void *store_frames(void *params)
             }
 
             //convert .png to .ppm
-            openCV_store_frames_mat = cvLoadImageM("dump.png", CV_LOAD_IMAGE_COLOR);
+            openCV_store_frames_mat = imread("dump.png", CV_LOAD_IMAGE_COLOR);
         }
 
         //dump frames as ppm

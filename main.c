@@ -15,15 +15,22 @@
 // /dev/videoX name
 char *device_name="/dev/video0";
 
+//global timer variable
+unsigned long long app_timer_counter = 1;
+
 //global time variable mutex to restrict access to it
 pthread_mutex_t app_timer_counter_mutex_lock;
 pthread_mutexattr_t app_timer_counter_mutex_lock_attr;
+
+//cond wait/signal for synchronization
+pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
 
 //function prototyping
 void *rt_thread_dispatcher_handler(void *args);
 static void usage(FILE *fp, int argc, char **argv);
 
-//global variable //updated by only once, and used across the application
+//global variable //updated once, and used across the application for sync
 bool use_v4l2_libs = false;
 bool query_frames_thread_dispatched = false;
 bool store_frames_thread_dispatched = false;
