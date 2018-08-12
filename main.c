@@ -12,24 +12,17 @@
 #include "utilities.h"
 #include "v4l2_capture.h"
 
-// /dev/videoX name
-char *device_name="/dev/video0";
-
-//global timer variable
-unsigned long long app_timer_counter = 1;
-
-//global time variable mutex to restrict access to it
-pthread_mutex_t app_timer_counter_mutex_lock;
-pthread_mutexattr_t app_timer_counter_mutex_lock_attr;
-
-//cond wait/signal for synchronization
-pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
-pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
-
 //function prototyping
 void *rt_thread_dispatcher_handler(void *args);
 void timer_handler(union sigval arg);
 static void usage(FILE *fp, int argc, char **argv);
+
+// /dev/videoX name
+char *device_name="/dev/video0";
+
+//global time variable mutex to restrict access to it
+pthread_mutex_t app_timer_counter_mutex_lock;
+pthread_mutexattr_t app_timer_counter_mutex_lock_attr;
 
 //global variable //updated once, and used across the application for sync
 bool use_v4l2_libs = false;
