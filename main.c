@@ -8,24 +8,19 @@
 
 #include "capture.hpp"
 #include "include.h"
+#include "posix_timer.h"
 #include "utilities.h"
 #include "v4l2_capture.h"
 
 // /dev/videoX name
 char *device_name="/dev/video0";
 
-//global time variable, and a mutex to restrict access to it
-unsigned long long app_timer_counter = 1;
+//global time variable mutex to restrict access to it
 pthread_mutex_t app_timer_counter_mutex_lock;
 pthread_mutexattr_t app_timer_counter_mutex_lock_attr;
 
-//cond wait/signal for synchronization
-pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
-pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
-
 //function prototyping
-void *rt_thread_dispatcher_handler(void *something);
-void timer_handler(union sigval arg);
+void *rt_thread_dispatcher_handler(void *args);
 static void usage(FILE *fp, int argc, char **argv);
 
 //global variable //updated by only once, and used across the application
@@ -35,64 +30,89 @@ bool store_frames_thread_dispatched = false;
 bool timer_started = false;
 unsigned int store_frames_frequency = 1; //default value 1
 bool live_camera_view = false;
-//**********************************
-//  Funcation Name:     main
-//**********************************
+unsigned int compress_ratio = 0; //default: no compression
+
+
+//------------------------------------------------------------------------------
+//  Function Name:  main
+//
+//  Parameters:     Command-line args. Enter "./main -h" for options
+//
+//  Return:         Fail/Success
+//
+//  Description:    Parse command line arguments.
+//                  Initialize syslogs
+//                  Create rt_thread_dispatcher thread, and wait for it to exit!
+//
+//------------------------------------------------------------------------------
 int main( int argc, char** argv )
 {
 
-	//user options
+	//parse user options
     while(1)
     {
         int idx;
         int user_input_option;
 
-        user_input_option = getopt(argc, argv, "d:f:hl:s:");
+        user_input_option = getopt(argc, argv, "c:d:f:hl:s:");
 
-        if (user_input_option == -1)
-                break; //exit forever loop
+        if (user_input_option == -1) break; //exit forever loop
 
-            switch (user_input_option)
-            {
-
-					case 'd':
-						//ignoring device name changes for now
-						break;
-
-					case 'f':
-	                    store_frames_frequency = atoi(optarg);
-						//validate the frequency parameter
-						if(store_frames_frequency < 1)
-						{
-							store_frames_frequency = 1; //reset to one
-							fprintf(stdout, "Resetting frame store frequency to 1 Hz (Min allowed)! \n");
-						}
-						else if(store_frames_frequency > 10)
-						{
-							store_frames_frequency = 10; //not suppporting more than 10Hz
-							fprintf(stdout, "Resetting frame store frequency to 10 Hz (Max allowed)! \n");
-						}
-
-	                    break;
-
-					case 'h':
-                        usage(stdout, argc, argv);
-                        return(SUCCESS);
-
-					case 'l':
-						live_camera_view = (bool)atoi(optarg);
-						break;
-
-					case 's':
-						//not supporting at the moment
-						break;
-
-                    default:
-                        usage(stderr, argc, argv);
-                        exit(EXIT_FAILURE);
+        switch (user_input_option)
+        {
+            case 'c':
+                compress_ratio = atoi(optarg);
+                //validate user input
+                if(compress_ratio<0)
+                {
+                    compress_ratio = 0; //not supporting less than 0
+                    fprintf(stdout, "Resetting compression ratio to 0 (Min allowed)! \n");
+                }
+                else if(compress_ratio > 9)
+                {
+                    compress_ratio = 9; //not supporting more than 9
+                    fprintf(stdout, "Resetting compression ratio to 9 (Max allowed)! \n");
+                }
+                //ignoring device name changes for now
                 break;
-            }
-        }
+
+			case 'd':
+				//ignoring device name changes for now
+				break;
+
+			case 'f':
+                store_frames_frequency = atoi(optarg);
+				//validate the frequency parameter
+				if(store_frames_frequency < 1)
+				{
+					store_frames_frequency = 1; //reset to one
+					fprintf(stdout, "Resetting frame store frequency to 1 Hz (Min allowed)! \n");
+				}
+				else if(store_frames_frequency > 10)
+				{
+					store_frames_frequency = 10; //not suppporting more than 10Hz
+					fprintf(stdout, "Resetting frame store frequency to 10 Hz (Max allowed)! \n");
+				}
+                break;
+
+			case 'h':
+                usage(stdout, argc, argv);
+                return(SUCCESS);
+
+			case 'l':
+				live_camera_view = (bool)atoi(optarg);
+				break;
+
+			case 's':
+				//not supporting at the moment
+				break;
+
+            default:
+                usage(stderr, argc, argv);
+                exit(EXIT_FAILURE);
+                break;
+        }//end of switch(user_input_option)
+    }//end of while(1)
 
     int rc = 0;
 
@@ -121,13 +141,21 @@ int main( int argc, char** argv )
     //print to terminal
     printf("Exiting..!\n");
     return 0;
-}
+} //end of main()
 
 
-//*****************************************
-//  Funcation Name:     rt_thread_dispatcher_handler
-//*****************************************
-void *rt_thread_dispatcher_handler(void *something)
+//------------------------------------------------------------------------------
+//  Function Name:  rt_thread_dispatcher_handler
+//
+//  Parameters:     args - not used
+//
+//  Return:         None
+//
+//  Description:    Initialize and start POSIX timer
+//                  Dispatch RT thtreads to query and store frames
+//
+//------------------------------------------------------------------------------
+void *rt_thread_dispatcher_handler(void *args)
 {
     int rc;
     pthread_t query_frames_thread, store_frames_thread;
@@ -231,70 +259,25 @@ void *rt_thread_dispatcher_handler(void *something)
     syslog(LOG_WARNING," rt_thread_dispatcher exiting...");
     //exit thread
     pthread_exit(NULL);
-}
+} //end of "rt_thread_dispatcher_handler()""
 
-//*****************************************
-//  Funcation Name:     timer_handler
-//*****************************************
-void timer_handler(union sigval arg)
-{
-    #ifdef TIMER_TIME_ANALYSIS
-    static struct timespec timer_start_time;
-    static double timer_wcet=0;
-    #endif
-
-    //accquire mutex lock on timer counter variable
-    if(pthread_mutex_lock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
-
-    #ifdef TIMER_TIME_ANALYSIS
-    clock_gettime(CLOCK_REALTIME, &timer_start_time);
-    #endif
-    //update timer counter
-    app_timer_counter += APP_TIMER_INTERVAL_IN_MSEC;
-
-    //use v4l2 library APIs
-    if(use_v4l2_libs)
-    {
-
-    }
-
-    //use openCV APIs
-    else
-    {
-        //run at 20Hz
-        if((query_frames_thread_dispatched) && ((app_timer_counter % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0))
-        {
-            //signal  query_frames_thread
-            if(pthread_cond_signal(&cond_query_frames_thread)) EXIT_FAIL("pthread_cond_signal");
-        }
-
-        //run at variable frequency from 1 Hz to 10 Hz
-        if((store_frames_thread_dispatched) && ((app_timer_counter % (DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC/store_frames_frequency)) == 0))
-        {
-            //signal store_frames_thread
-            if(pthread_cond_signal(&cond_store_frames_thread)) EXIT_FAIL("pthread_cond_signal");
-        }
-
-    }
-
-    //relinquish mutex lock on timer counter variable
-    if(pthread_mutex_unlock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
-
-    #ifdef TIMER_TIME_ANALYSIS
-    if(timer_wcet < elapsed_time_in_msec(&timer_start_time))
-    {
-        timer_wcet = elapsed_time_in_msec(&timer_start_time);
-        syslog(LOG_WARNING, " =====> Timer WCET:%lf", timer_wcet);
-    }
-    #endif
-}
-
-
+//------------------------------------------------------------------------------
+//  Function Name:  rt_thread_dispatcher_handler
+//
+//  Parameters:     args - not used
+//
+//  Return:         None
+//
+//  Description:    Initialize and start POSIX timer
+//                  Dispatch RT thtreads to query and store frames
+//
+//------------------------------------------------------------------------------
 static void usage(FILE *fp, int argc, char **argv)
 {
     fprintf(fp,
              "Usage: %s [options]\n\n"
              "Options:\n"
+             "-c     Compression ratio [default:0, Min: 0, Max: 9]"
              "-d     Video device name [default: '/dev/video0']\n"
              "-f     Select frame store frequency [Min: 1 Hz, Max: 10Hz, Default: 1 Hz]\n"
              "-h     Print this message\n"
@@ -302,6 +285,7 @@ static void usage(FILE *fp, int argc, char **argv)
              "-s     Number of frames to sotre [default: 1800]\n",
              argv[0]);
 }
+
 //==============================================================================
 //    End of file!
 //==============================================================================

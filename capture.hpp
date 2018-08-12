@@ -19,10 +19,7 @@
 #include <unistd.h>
 #include <vector>
 
-//frame resolution
-#define FRAME_HRES 640
-#define FRAME_VRES 480
-
+//APIs
 void initialize_device_use_openCV(void);
 void *query_frames(void *cameraIdx);
 void *store_frames(void *params);

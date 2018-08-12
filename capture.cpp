@@ -73,14 +73,14 @@ void initialize_device_use_openCV(void)
     Mat openCV_store_frames_mat = cvarrToMat(retrieve_frame);
 
     //paramaters to save .ppm file
-    vector<int> compression_params;
-    compression_params.push_back(CV_IMWRITE_PXM_BINARY);
-    compression_params.push_back(1);
+    vector<int> ppm_params;
+    ppm_params.push_back(CV_IMWRITE_PXM_BINARY);
+    ppm_params.push_back(1);
 
     //try writing a dummy file, and see if the write was successful or not
     try
     {
-        imwrite("dump.ppm", openCV_store_frames_mat, compression_params);
+        imwrite("dump.ppm", openCV_store_frames_mat, ppm_params);
     }
     catch (runtime_error& ex)
     {
@@ -247,11 +247,8 @@ void *store_frames(void *params)
     static unsigned int missed_deadlines = 0;
     #endif //TIME_ANALYSIS
 
-    //parameters to save the frame as .ppm file
-    vector<int> compression_params;
-    compression_params.push_back(CV_IMWRITE_PXM_BINARY);
-    compression_params.push_back(1);
     static unsigned int frame_counter=0;
+
     //.ppm file name variable
     static struct timeval frame_timestamp;
     static char ppm_file_name[20] = {};
@@ -264,6 +261,21 @@ void *store_frames(void *params)
     //openCV supported Mat class data structure
     Mat openCV_store_frames_mat;
 
+    //if compression is allowed
+    if(compress_ratio)
+    {
+        //parameters to save the frame as compressed .png file
+        vector<int> compress_params;
+        compress_params.push_back(CV_IMWRITE_PXM_BINARY);
+        compress_params.push_back(compress_ratio);
+    }
+
+    //parameters to save the frame as .ppm file
+    vector<int> ppm_params;
+    ppm_params.push_back(CV_IMWRITE_PXM_BINARY);
+    ppm_params.push_back(1);
+
+    //loop forever, until user enters 'q' or 'Esc'
     while(1)
     {
         if(timer_started)
@@ -307,10 +319,28 @@ void *store_frames(void *params)
         syslog(LOG_WARNING, " store_frames unlocked frame_mutex at %lld", app_timer_counter);
         #endif
 
+        if(compress_ratio)
+        {
+            //dump frames as png
+            try
+            {
+                imwrite("dump.png", openCV_store_frames_mat, compress_params);
+            }
+            //catch any exceptions, and exit the application if there are any issue while storing the .ppm file
+            catch(runtime_error& ex)
+            {
+                printf("Exception converting image to PPM format!\n");
+                exit(ERROR);
+            }
+
+            //convert .png to .ppm
+            openCV_store_frames_mat = cvLoadImageM("dump.png", CV_LOAD_IMAGE_COLOR);
+        }
+
         //dump frames as ppm
         try
         {
-            imwrite("dump.ppm", openCV_store_frames_mat, compression_params);
+            imwrite("dump.ppm", openCV_store_frames_mat, ppm_params);
         }
         //catch any exceptions, and exit the application if there are any issue while storing the .ppm file
         catch(runtime_error& ex)
