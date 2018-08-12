@@ -253,7 +253,7 @@ void *store_frames(void *params)
 
     //.ppm file name variable
     static struct timeval frame_timestamp;
-    static char ppm_file_name[20] = {};
+    static char file_name[20] = {};
     static char ppm_header1[64] = "";
     static char ppm_header2[] = "\n# TARGET: Linux tegra-ubuntu 4.4.38-tegra #1 SMP PREEMPT Thu May 17 00:15:19 PDT 2018 aarch64 aarch64 aarch64 GNU/Linux";
     static int ppm_fd, ppm_file_size, dump_fd;
@@ -319,10 +319,13 @@ void *store_frames(void *params)
 
         if(compress_ratio)
         {
+            //compressed .png file name
+            sprintf(file_name, "alpha%d.png", frame_counter);
+
             //dump frames as png
             try
             {
-                imwrite("dump.png", openCV_store_frames_mat, compress_params);
+                imwrite(file_name, openCV_store_frames_mat, compress_params);
             }
             //catch any exceptions, and exit the application if there are any issue while storing the .ppm file
             catch(runtime_error& ex)
@@ -331,58 +334,97 @@ void *store_frames(void *params)
                 exit(ERROR);
             }
 
-            //convert .png to .ppm
-            openCV_store_frames_mat = imread("dump.png", CV_LOAD_IMAGE_COLOR);
+            /* Not adding header in .png compression
+            //compressed .png file name
+            sprintf(file_name, "alpha%d.png", frame_counter);
+            //compressed .png file name
+            sprintf(file_name, "alpha%d.png", frame_counter);
+            //apend ppm header
+            ppm_fd = open(file_name, O_RDWR | O_NONBLOCK | O_CREAT, 00666);
+            dump_fd = open("dump.png", O_RDONLY | O_NONBLOCK | O_CREAT, 00666);
+
+            //read first line of the file which specifies the format P6
+            if(read(dump_fd, buffer, 4))
+            {
+                write(ppm_fd, buffer, 4);
+            }
+            else
+            {
+                EXIT_FAIL("Error opening dump.png file!");
+            }
+
+            //append headers to the .ppm file
+            CLEAR_MEMORY(ppm_header1); //remove previous header data
+            //write time-stamp to header string
+            sprintf(ppm_header1, "\n#Frame %d captured at %ld:%ld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
+            write(ppm_fd, ppm_header1, strlen(ppm_header1));
+            write(ppm_fd, ppm_header2, strlen(ppm_header2));
+
+            //read dump.ppm file contents
+            while(read(dump_fd, buffer, frame_data_size))
+            {
+                //write data
+                write(ppm_fd, buffer, frame_data_size);
+                CLEAR_MEMORY(buffer);
+            }
+            //write last few bytes before the EOF
+            write(ppm_fd, buffer, frame_data_size);
+            //close files
+            close(ppm_fd);
+            close(dump_fd);
+            */ //Not adding timestamp header in .png compression
         }
 
-        //dump frames as ppm
-        try
-        {
-            imwrite("dump.ppm", openCV_store_frames_mat, ppm_params);
-        }
-        //catch any exceptions, and exit the application if there are any issue while storing the .ppm file
-        catch(runtime_error& ex)
-        {
-            printf("Exception converting image to PPM format!\n");
-            exit(ERROR);
-        }
-
-        //.ppm file name
-        sprintf(ppm_file_name, "alpha%d.ppm", frame_counter);
-        //apend ppm header
-        ppm_fd = open(ppm_file_name, O_RDWR | O_NONBLOCK | O_CREAT, 00666);
-        dump_fd = open("dump.ppm", O_RDONLY | O_NONBLOCK | O_CREAT, 00666);
-
-        //read first line of the file which specifies the format P6
-        if(read(dump_fd, buffer, 2))
-        {
-            write(ppm_fd, buffer, 2);
-        }
         else
         {
-            EXIT_FAIL("Error opening dump.ppm file!");
-        }
+            //dump frames as ppm
+            try
+            {
+                imwrite("dump.ppm", openCV_store_frames_mat, ppm_params);
+            }
+            //catch any exceptions, and exit the application if there are any issue while storing the .ppm file
+            catch(runtime_error& ex)
+            {
+                printf("Exception converting image to PPM format!\n");
+                exit(ERROR);
+            }
 
-        //append headers to the .ppm file
-        CLEAR_MEMORY(ppm_header1); //remove previous header data
-        //write time-stamp to header string
-        sprintf(ppm_header1, "\n#Frame %d captured at %ld:%ld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
-        write(ppm_fd, ppm_header1, strlen(ppm_header1));
-        write(ppm_fd, ppm_header2, strlen(ppm_header2));
+            //.ppm file name
+            sprintf(file_name, "alpha%d.ppm", frame_counter);
+            //apend ppm header
+            ppm_fd = open(file_name, O_RDWR | O_NONBLOCK | O_CREAT, 00666);
+            dump_fd = open("dump.ppm", O_RDONLY | O_NONBLOCK | O_CREAT, 00666);
 
-        //read dump.ppm file contents
-        while(read(dump_fd, buffer, frame_data_size))
-        {
-            //write data
+            //read first line of the file which specifies the format P6
+            if(read(dump_fd, buffer, 2))
+            {
+                write(ppm_fd, buffer, 2);
+            }
+            else
+            {
+                EXIT_FAIL("Error opening dump.ppm file!");
+            }
+
+            //append headers to the .ppm file
+            CLEAR_MEMORY(ppm_header1); //remove previous header data
+            //write time-stamp to header string
+            sprintf(ppm_header1, "\n#Frame %d captured at %ld:%ld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
+            write(ppm_fd, ppm_header1, strlen(ppm_header1));
+            write(ppm_fd, ppm_header2, strlen(ppm_header2));
+
+            //read dump.ppm file contents
+            while(read(dump_fd, buffer, frame_data_size))
+            {
+                //write data
+                write(ppm_fd, buffer, frame_data_size);
+                CLEAR_MEMORY(buffer);
+            }
+            //write last few bytes before the EOF
             write(ppm_fd, buffer, frame_data_size);
-            CLEAR_MEMORY(buffer);
+            //close files
+            close(ppm_fd);
+            close(dump_fd);
         }
-        //write last few bytes before the EOF
-        write(ppm_fd, buffer, frame_data_size);
-        //close files
-        close(ppm_fd);
-        close(dump_fd);
-
         //if this bit is set, most recent frames are already being displayed by query_frames_thread
         if(!live_camera_view)
         {
