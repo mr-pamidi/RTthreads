@@ -366,7 +366,7 @@ void *store_frames(void *params)
         //append headers to the .ppm file
         CLEAR_MEMORY(ppm_header1); //remove previous header data
         //write time-stamp to header string
-        sprintf(ppm_header1, "\n#Frame %d captured at %lld:%lld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
+        sprintf(ppm_header1, "\n#Frame %d captured at %ld:%ld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
         write(ppm_fd, ppm_header1, strlen(ppm_header1));
         write(ppm_fd, ppm_header2, strlen(ppm_header2));
 
