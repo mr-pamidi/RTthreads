@@ -110,10 +110,12 @@ int main( int argc, char** argv )
                 if(max_no_of_frames_allowed < 0)
                 {
                     max_no_of_frames_allowed = 1;
+                    fprintf(stdout, "Resetting no.of frames collecting to 1 (Min allowed)!\n");
                 }
                 else if(max_no_of_frames_allowed > 6000)
                 {
                     max_no_of_frames_allowed = 6000;
+                    fprintf(stdout, "Resetting no.of frames collecting to 6000 (Max allowed)!\n");
                 }
 				break;
 
@@ -149,7 +151,7 @@ int main( int argc, char** argv )
     closelog();
 
     //print to terminal
-    printf("Exiting..!\n");
+    fprintf(stdout, "\n\nexiting Time-Lapse Image Acquisition application..!\nSee you soon :)\n\n");
     return 0;
 } //end of main()
 
@@ -278,7 +280,7 @@ void *rt_thread_dispatcher_handler(void *args)
 static void usage(FILE *fp, int argc, char **argv)
 {
     fprintf(fp,
-             "Usage: %s [options]\n\n"
+             "\nUsage: %s [options]\n\n"
              "Options:\n"
              "\t-c    Compression ratio \n\t\t[Min: 0, Max: 9, Default :0]\n\n"
              "\t-d    Video device name \n\t\t[default: '/dev/video0']\n\n"
