@@ -225,7 +225,7 @@ void *rt_thread_dispatcher_handler(void *args)
     //using openCV APIs to qccquire individual frames from the camera
     //initialize, start querying frames, and save a sample frame, to make sure device is working..!
     initialize_device_use_openCV();
-/*
+
     //create query_frames_thread
     syslog(LOG_WARNING,"\n query_frames_thread dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
     query_frames_thread_dispatched = true;
@@ -234,7 +234,7 @@ void *rt_thread_dispatcher_handler(void *args)
     {
         EXIT_FAIL("pthread_create");
     }
-*/
+
     //create store_frames_thread
     syslog(LOG_WARNING,"\n store_frames_thread dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
     store_frames_thread_dispatched = true;
