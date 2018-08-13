@@ -20,7 +20,6 @@ pthread_cond_t cond_query_frames_thread;
 pthread_cond_t cond_store_frames_thread;
 
 //global variable //updated by only once, and used across the application for sync
-extern bool use_v4l2_libs;
 extern bool query_frames_thread_dispatched;
 extern bool store_frames_thread_dispatched;
 extern unsigned int store_frames_frequency; //default value 1
@@ -52,29 +51,18 @@ void timer_handler(union sigval arg)
     //update timer counter
     app_timer_counter += APP_TIMER_INTERVAL_IN_MSEC;
 
-    //use v4l2 library APIs
-    if(use_v4l2_libs)
+    //run at 25 Hz
+    if((query_frames_thread_dispatched) && ((app_timer_counter % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0))
     {
-
+        //signal  query_frames_thread
+        if(pthread_cond_signal(&cond_query_frames_thread)) EXIT_FAIL("pthread_cond_signal");
     }
 
-    //use openCV APIs
-    else
+    //run at variable frequency from 1 Hz to 10 Hz
+    if((store_frames_thread_dispatched) && ((app_timer_counter % (DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC/store_frames_frequency)) == 0))
     {
-        //run at 20Hz
-        if((query_frames_thread_dispatched) && ((app_timer_counter % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0))
-        {
-            //signal  query_frames_thread
-            if(pthread_cond_signal(&cond_query_frames_thread)) EXIT_FAIL("pthread_cond_signal");
-        }
-
-        //run at variable frequency from 1 Hz to 10 Hz
-        if((store_frames_thread_dispatched) && ((app_timer_counter % (DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC/store_frames_frequency)) == 0))
-        {
-            //signal store_frames_thread
-            if(pthread_cond_signal(&cond_store_frames_thread)) EXIT_FAIL("pthread_cond_signal");
-        }
-
+        //signal store_frames_thread
+        if(pthread_cond_signal(&cond_store_frames_thread)) EXIT_FAIL("pthread_cond_signal");
     }
 
     //relinquish mutex lock on timer counter variable

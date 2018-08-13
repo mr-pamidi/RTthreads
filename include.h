@@ -62,8 +62,8 @@ typedef struct
 
 //1000 Hz
 #define APP_TIMER_INTERVAL_IN_MSEC              (1) //timer period 1ms resolution
-//20 Hz
-#define QUERY_FRAMES_INTERVAL_IN_MSEC           (50) //50 ms frame query
+//25 Hz
+#define QUERY_FRAMES_INTERVAL_IN_MSEC           (40) //40 ms frame query
 //1 Hz
 #define DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC   (MSEC_PER_SEC) //store frames
 

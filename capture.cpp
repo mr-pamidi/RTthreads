@@ -307,6 +307,7 @@ void *store_frames(void *params)
         //if this bit is set, most recent frame is already retrieved by the query_frames_thread
         if(!live_camera_view)
         {
+            if(!(cvGrabFrame(grab_frame))) EXIT_FAIL("cvGrabFrame"); //grab new frame
             retrieve_frame = cvRetrieveFrame(grab_frame);
         }
         //convert IplImage type to Mat type
@@ -320,7 +321,7 @@ void *store_frames(void *params)
         if(compress_ratio)
         {
             //compressed .png file name
-            sprintf(file_name, "alpha%d.png", frame_counter);
+            sprintf(file_name, "frame_%d.png", frame_counter);
 
             //dump frames as png
             try
@@ -390,7 +391,7 @@ void *store_frames(void *params)
             }
 
             //.ppm file name
-            sprintf(file_name, "alpha%d.ppm", frame_counter);
+            sprintf(file_name, "frame_%d.ppm", frame_counter);
             //apend ppm header
             ppm_fd = open(file_name, O_RDWR | O_NONBLOCK | O_CREAT, 00666);
             dump_fd = open("dump.ppm", O_RDONLY | O_NONBLOCK | O_CREAT, 00666);
@@ -408,7 +409,7 @@ void *store_frames(void *params)
             //append headers to the .ppm file
             CLEAR_MEMORY(ppm_header1); //remove previous header data
             //write time-stamp to header string
-            sprintf(ppm_header1, "\n#Frame %d captured at %ld:%ld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
+            sprintf(ppm_header1, "\n# Frame %d captured at %ld:%ld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
             write(ppm_fd, ppm_header1, strlen(ppm_header1));
             write(ppm_fd, ppm_header2, strlen(ppm_header2));
 

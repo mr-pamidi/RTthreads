@@ -25,7 +25,6 @@ pthread_mutex_t app_timer_counter_mutex_lock;
 pthread_mutexattr_t app_timer_counter_mutex_lock_attr;
 
 //global variable //updated once, and used across the application for sync
-bool use_v4l2_libs = false;
 bool query_frames_thread_dispatched = false;
 bool store_frames_thread_dispatched = false;
 bool timer_started = false;
@@ -87,12 +86,12 @@ int main( int argc, char** argv )
 				if(store_frames_frequency < 1)
 				{
 					store_frames_frequency = 1; //reset to one
-					fprintf(stdout, "Resetting frame store frequency to 1 Hz (Min allowed)! \n");
+					fprintf(stdout, "Resetting frequency to save the frames to 1 Hz (Min allowed)! \n");
 				}
 				else if(store_frames_frequency > 10)
 				{
 					store_frames_frequency = 10; //not suppporting more than 10Hz
-					fprintf(stdout, "Resetting frame store frequency to 10 Hz (Max allowed)! \n");
+					fprintf(stdout, "Resetting frequency to save the frames to 10 Hz (Max allowed)! \n");
 				}
                 break;
 
@@ -213,40 +212,32 @@ void *rt_thread_dispatcher_handler(void *args)
     if(timer_settime(timer_id, 0, &timer_period, 0)) EXIT_FAIL("timer_settime");
     timer_started = true;
 
-    if(use_v4l2_libs)
+    //using openCV APIs to qccquire individual frames from the camera
+    //initialize, start querying frames, and save a sample frame, to make sure device is working..!
+    initialize_device_use_openCV();
+/*
+    //create query_frames_thread
+    syslog(LOG_WARNING,"\n query_frames_thread dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
+    query_frames_thread_dispatched = true;
+    rc = pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
+    if(rc)
     {
-
+        EXIT_FAIL("pthread_create");
+    }
+*/
+    //create store_frames_thread
+    syslog(LOG_WARNING,"\n store_frames_thread dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
+    store_frames_thread_dispatched = true;
+    rc = pthread_create(&store_frames_thread, &store_frames_thread_attr, store_frames, (void *)&store_frames_threadIdx);
+    if(rc)
+    {
+        EXIT_FAIL("pthread_create");
     }
 
-    //use openCV APIs
-    else
-    {
-        //initialize, start querying frames, and save a sample frame, to make sure device is working..!
-        initialize_device_use_openCV();
-        //create query_frames_thread
-        syslog(LOG_WARNING,"\n query_frames_thread dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
-        query_frames_thread_dispatched = true;
-        rc = pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
-        if(rc)
-        {
-            EXIT_FAIL("pthread_create");
-        }
-
-        //create store_frames_thread
-        syslog(LOG_WARNING,"\n store_frames_thread dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
-        store_frames_thread_dispatched = true;
-        rc = pthread_create(&store_frames_thread, &store_frames_thread_attr, store_frames, (void *)&store_frames_threadIdx);
-        if(rc)
-        {
-            EXIT_FAIL("pthread_create");
-        }
-        else
-
-        //wait fot query_frames_thread to exit
-        pthread_join(query_frames_thread, NULL);
-        //wait for store_frames_thread to exit
-        pthread_join(store_frames_thread, NULL);
-    }
+    //wait fot query_frames_thread to exit
+    pthread_join(query_frames_thread, NULL);
+    //wait for store_frames_thread to exit
+    pthread_join(store_frames_thread, NULL);
 
     //stop timer
     timer_period.it_interval.tv_sec = 0;
@@ -279,11 +270,11 @@ static void usage(FILE *fp, int argc, char **argv)
     fprintf(fp,
              "Usage: %s [options]\n\n"
              "Options:\n"
-             "-c     Compression ratio [default:0, Min: 0, Max: 9]"
+             "-c     Compression ratio [default:0, Min: 0, Max: 9]\n"
              "-d     Video device name [default: '/dev/video0']\n"
-             "-f     Select frame store frequency [Min: 1 Hz, Max: 10Hz, Default: 1 Hz]\n"
+             "-f     Select frequency to save frames [Min: 1 Hz, Max: 10Hz, Default: 1 Hz]\n"
              "-h     Print this message\n"
-			 "-l 	 Live camera view [default: false]"
+			 "-l     Live camera view [default: false]\n"
              "-s     Number of frames to sotre [default: 1800]\n",
              argv[0]);
 }
