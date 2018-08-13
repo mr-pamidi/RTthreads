@@ -217,13 +217,13 @@ void *query_frames(void *cameraIdx)
     {
         query_frames_average_load_time /= frame_counter;
     }
-    fprintf(stdout, "\n\n**************************************
-                     \nquery_frames_thread execuiton results:
-                     \nno. of frames processed: %d,
-                     \nWCET: %lf,
-                     \nAverage Execution Time: %lf,
-                     \nMissed Deadlines: %d
-                     \n**************************************",
+    fprintf(stdout, "\n\n**************************************"
+                     "\nquery_frames_thread execuiton results:"
+                     "\nno. of frames processed: %d,"
+                     "\nWCET: %lf,"
+                     "\nAverage Execution Time: %lf,"
+                     "\nMissed Deadlines: %d"
+                     "\n**************************************",
                      frame_counter, query_frames_wcet, query_frames_average_load_time, missed_deadlines);
     #endif //TIME_ANALYSIS
 
@@ -480,13 +480,13 @@ void *store_frames(void *params)
         store_frames_average_load_time /= frame_counter;
     }
 
-    fprintf(stdout, "\n\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                     \nstore_frames_thread execuiton results:
-                     \nno. of frames processed: %d,
-                     \nWCET: %lf,
-                     \nAverage Execution Time: %lf,
-                     \nMissed Deadlines: %d
-                     \n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    fprintf(stdout, "\n\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+                     "\nstore_frames_thread execuiton results:"
+                     "\nno. of frames processed: %d,"
+                     "\nWCET: %lf,"
+                     "\nAverage Execution Time: %lf,"
+                     "\nMissed Deadlines: %d"
+                     "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
                      frame_counter, store_frames_wcet, store_frames_average_load_time, missed_deadlines);
     #endif //TIME_ANALYSIS
 
