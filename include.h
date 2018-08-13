@@ -99,6 +99,7 @@ typedef struct
     }
 
 #define CLEAR_MEMORY(var)     memset(&(var), 0, sizeof(var))
+
 #endif //_INCLUDE_H
 
 //==============================================================================

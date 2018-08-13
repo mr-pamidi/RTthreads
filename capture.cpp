@@ -2,7 +2,7 @@
 //
 //  Author: Nagarjuna Pamidi
 //
-//  File name: utilities.h
+//  File name: capture.cpp
 //
 //  Description: Used for querying and storing the frames from the USB camera
 //
@@ -470,7 +470,7 @@ void *store_frames(void *params)
         #endif //TIME_ANALYSIS
 
         //exit if no.of frames reached the user selected limit
-        if(frame_counter > max_no_of_frames_allowed) break;
+        if(frame_counter >= max_no_of_frames_allowed) break;
     }
 
     #ifdef TIME_ANALYSIS

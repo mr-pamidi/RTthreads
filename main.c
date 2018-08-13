@@ -3,7 +3,7 @@
 //
 //  File name: main.c
 //
-//  Description: Manages RT Threads and timer
+//  Description: main() function, manages RT Threads
 //
 
 #include "capture.hpp"
@@ -14,7 +14,6 @@
 
 //function prototyping
 void *rt_thread_dispatcher_handler(void *args);
-void timer_handler(union sigval arg);
 static void usage(FILE *fp, int argc, char **argv);
 
 // /dev/videoX name
@@ -49,7 +48,7 @@ unsigned int max_no_of_frames_allowed = 100;
 int main( int argc, char** argv )
 {
 
-	//parse user options
+    //parse user options
     while(1)
     {
         int idx;
@@ -62,67 +61,67 @@ int main( int argc, char** argv )
         switch (user_input_option)
         {
             case 'c':
-                compress_ratio = atoi(optarg);
-                //validate user input
-                if(compress_ratio<0)
-                {
-                    compress_ratio = 0; //not supporting less than 0
-                    fprintf(stdout, "Resetting compression ratio to 0 (Min allowed)! \n");
-                }
-                else if(compress_ratio > 9)
-                {
-                    compress_ratio = 9; //not supporting more than 9
-                    fprintf(stdout, "Resetting compression ratio to 9 (Max allowed)! \n");
-                }
-                //ignoring device name changes for now
-                break;
+            compress_ratio = atoi(optarg);
+            //validate user input
+            if(compress_ratio<0)
+            {
+                compress_ratio = 0; //not supporting less than 0
+                fprintf(stdout, "Resetting compression ratio to 0 (Min allowed)! \n");
+            }
+            else if(compress_ratio > 9)
+            {
+                compress_ratio = 9; //not supporting more than 9
+                fprintf(stdout, "Resetting compression ratio to 9 (Max allowed)! \n");
+            }
+            //ignoring device name changes for now
+            break;
 
-			case 'd':
-				//ignoring device name changes for now
-				break;
+            case 'd':
+            //ignoring device name changes for now
+            break;
 
-			case 'f':
-                store_frames_frequency = atoi(optarg);
-				//validate the frequency parameter
-				if(store_frames_frequency < 1)
-				{
-					store_frames_frequency = 1; //reset to one
-					fprintf(stdout, "Resetting frequency to save the frames to 1 Hz (Min allowed)! \n");
-				}
-				else if(store_frames_frequency > 10)
-				{
-					store_frames_frequency = 10; //not suppporting more than 10Hz
-					fprintf(stdout, "Resetting frequency to save the frames to 10 Hz (Max allowed)! \n");
-				}
-                break;
+            case 'f':
+            store_frames_frequency = atoi(optarg);
+            //validate the frequency parameter
+            if(store_frames_frequency < 1)
+            {
+                store_frames_frequency = 1; //reset to one
+                fprintf(stdout, "Resetting frequency to save the frames to 1 Hz (Min allowed)! \n");
+            }
+            else if(store_frames_frequency > 10)
+            {
+                store_frames_frequency = 10; //not suppporting more than 10Hz
+                fprintf(stdout, "Resetting frequency to save the frames to 10 Hz (Max allowed)! \n");
+            }
+            break;
 
-			case 'h':
-                usage(stdout, argc, argv);
-                return(SUCCESS);
+            case 'h':
+            usage(stdout, argc, argv);
+            return(SUCCESS);
 
-			case 'l':
-				live_camera_view = (bool)atoi(optarg);
-				break;
+            case 'l':
+            live_camera_view = (bool)atoi(optarg);
+            break;
 
-			case 'n':
-				max_no_of_frames_allowed = atoi(optarg);
-                //boundary checks
-                if(max_no_of_frames_allowed < 0)
-                {
-                    max_no_of_frames_allowed = 1;
-                    fprintf(stdout, "Resetting no.of frames collecting to 1 (Min allowed)!\n");
-                }
-                else if(max_no_of_frames_allowed > 6000)
-                {
-                    max_no_of_frames_allowed = 6000;
-                    fprintf(stdout, "Resetting no.of frames collecting to 6000 (Max allowed)!\n");
-                }
-				break;
+            case 'n':
+            max_no_of_frames_allowed = atoi(optarg);
+            //boundary checks
+            if(max_no_of_frames_allowed < 0)
+            {
+                max_no_of_frames_allowed = 1;
+                fprintf(stdout, "Resetting no.of frames collecting to 1 (Min allowed)!\n");
+            }
+            else if(max_no_of_frames_allowed > 6000)
+            {
+                max_no_of_frames_allowed = 6000;
+                fprintf(stdout, "Resetting no.of frames collecting to 6000 (Max allowed)!\n");
+            }
+            break;
 
             default:
-                usage(stderr, argc, argv);
-                exit(EXIT_FAILURE);
-                break;
+            usage(stderr, argc, argv);
+            exit(EXIT_FAILURE);
+            break;
         }//end of switch(user_input_option)
     }//end of while(1)
 
