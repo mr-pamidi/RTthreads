@@ -31,6 +31,7 @@ bool timer_started = false;
 unsigned int store_frames_frequency = 1; //default value 1
 bool live_camera_view = false;
 unsigned int compress_ratio = 0; //default: no compression
+unsigned int max_no_of_frames_allowed = 100;
 
 
 //------------------------------------------------------------------------------
@@ -103,8 +104,17 @@ int main( int argc, char** argv )
 				live_camera_view = (bool)atoi(optarg);
 				break;
 
-			case 's':
-				//not supporting at the moment
+			case 'n':
+				max_no_of_frames_allowed = atoi(optarg);
+                //boundary checks
+                if(max_no_of_frames_allowed < 0)
+                {
+                    max_no_of_frames_allowed = 1;
+                }
+                else if(max_no_of_frames_allowed > 6000)
+                {
+                    max_no_of_frames_allowed = 6000;
+                }
 				break;
 
             default:
@@ -270,12 +280,12 @@ static void usage(FILE *fp, int argc, char **argv)
     fprintf(fp,
              "Usage: %s [options]\n\n"
              "Options:\n"
-             "-c     Compression ratio [default:0, Min: 0, Max: 9]\n"
-             "-d     Video device name [default: '/dev/video0']\n"
-             "-f     Select frequency to save frames [Min: 1 Hz, Max: 10Hz, Default: 1 Hz]\n"
-             "-h     Print this message\n"
-			 "-l     Live camera view [default: false]\n"
-             "-s     Number of frames to sotre [default: 1800]\n",
+             "\t-c    Compression ratio \n\t\t[Min: 0, Max: 9, Default :0]\n\n"
+             "\t-d    Video device name \n\t\t[default: '/dev/video0']\n\n"
+             "\t-f    Select frequency to save frames \n\t\t[Min: 1 Hz, Max: 10 Hz, Default: 1 Hz]\n\n"
+             "\t-h    Print this message\n\n"
+			 "\t-l    Live camera view \n\t\t[default: false]\n\n"
+             "\t-n    Number of frames to collect \n\t\t[Min: 1, Max: 6000, Default: 100]\n\n",
              argv[0]);
 }
 

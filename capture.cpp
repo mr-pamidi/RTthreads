@@ -21,6 +21,7 @@ extern bool timer_started;
 extern unsigned int store_frames_frequency;
 extern bool live_camera_view;
 extern unsigned int compress_ratio; //default:0 no compression
+extern unsigned int max_no_of_frames_allowed;
 
 //cpp namespaces
 using namespace cv;
@@ -216,7 +217,14 @@ void *query_frames(void *cameraIdx)
     {
         query_frames_average_load_time /= frame_counter;
     }
-    syslog(LOG_WARNING, " query_frames_thread execuiton results, frames:%d, WCET:%lf, Average:%lf, Missed Deadlines:%d", frame_counter, query_frames_wcet, query_frames_average_load_time, missed_deadlines);
+    fprintf(stdout, "\n\n**************************************
+                     \nquery_frames_thread execuiton results:
+                     \nno. of frames processed: %d,
+                     \nWCET: %lf,
+                     \nAverage Execution Time: %lf,
+                     \nMissed Deadlines: %d
+                     \n**************************************",
+                     frame_counter, query_frames_wcet, query_frames_average_load_time, missed_deadlines);
     #endif //TIME_ANALYSIS
 
     #ifdef DEBUG_MODE_ON
@@ -461,6 +469,8 @@ void *store_frames(void *params)
         }
         #endif //TIME_ANALYSIS
 
+        //exit if no.of frames reached the user selected limit
+        if(frame_counter > max_no_of_frames_allowed) break;
     }
 
     #ifdef TIME_ANALYSIS
@@ -469,7 +479,15 @@ void *store_frames(void *params)
     {
         store_frames_average_load_time /= frame_counter;
     }
-    syslog(LOG_WARNING, " store_frames_thread execuiton results, frames:%d, WCET:%lf, Average:%lf, Missed Deadlines:%d", frame_counter, store_frames_wcet, store_frames_average_load_time, missed_deadlines);
+
+    fprintf(stdout, "\n\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     \nstore_frames_thread execuiton results:
+                     \nno. of frames processed: %d,
+                     \nWCET: %lf,
+                     \nAverage Execution Time: %lf,
+                     \nMissed Deadlines: %d
+                     \n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+                     frame_counter, store_frames_wcet, store_frames_average_load_time, missed_deadlines);
     #endif //TIME_ANALYSIS
 
     #ifdef DEBUG_MODE_ON
