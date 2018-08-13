@@ -55,7 +55,7 @@ int main( int argc, char** argv )
         int idx;
         int user_input_option;
 
-        user_input_option = getopt(argc, argv, "c:d:f:hl:s:");
+        user_input_option = getopt(argc, argv, "c:d:f:hl:n:");
 
         if (user_input_option == -1) break; //exit forever loop
 
