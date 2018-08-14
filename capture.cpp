@@ -113,7 +113,7 @@ void *query_frames(void *cameraIdx)
 
     #ifdef TIME_ANALYSIS
     //RT time analysis
-    static struct timespec query_frames_start_time;
+    static struct timespec query_frames_start_time, query_frames_end_time;
     static double query_frames_elapsed_time, query_frames_average_load_time, query_frames_wcet=0;
     static unsigned int missed_deadlines = 0;
     #endif //TIME_ANALYSIS
@@ -183,8 +183,9 @@ void *query_frames(void *cameraIdx)
         ++frame_counter;
 
         #ifdef TIME_ANALYSIS
+        query_frames_end_time = clock_gettime(CLOCK_REALTIME, &query_frames_end_time);
         //measure elapsed time
-        query_frames_elapsed_time = elapsed_time_in_msec(&query_frames_start_time);
+        query_frames_elapsed_time = delta_time_in_msec(&query_frames_end_time, &query_frames_start_time);
 
         //measure WCET
         if(query_frames_elapsed_time > query_frames_wcet)
@@ -252,7 +253,7 @@ void *store_frames(void *params)
 
     #ifdef TIME_ANALYSIS
     //time analysis
-    static struct timespec store_frames_start_time;
+    static struct timespec store_frames_start_time, store_frames_end_time;
     static double store_frames_elapsed_time, store_frames_average_load_time, store_frames_wcet=0;
     static unsigned int missed_deadlines = 0;
     #endif //TIME_ANALYSIS
@@ -342,46 +343,6 @@ void *store_frames(void *params)
                 printf("Exception converting image to PPM format!\n");
                 exit(ERROR);
             }
-
-            /* Not adding header in .png compression
-            //compressed .png file name
-            sprintf(file_name, "alpha%d.png", frame_counter);
-            //compressed .png file name
-            sprintf(file_name, "alpha%d.png", frame_counter);
-            //apend ppm header
-            ppm_fd = open(file_name, O_RDWR | O_NONBLOCK | O_CREAT, 00666);
-            dump_fd = open("dump.png", O_RDONLY | O_NONBLOCK | O_CREAT, 00666);
-
-            //read first line of the file which specifies the format P6
-            if(read(dump_fd, buffer, 4))
-            {
-                write(ppm_fd, buffer, 4);
-            }
-            else
-            {
-                EXIT_FAIL("Error opening dump.png file!");
-            }
-
-            //append headers to the .ppm file
-            CLEAR_MEMORY(ppm_header1); //remove previous header data
-            //write time-stamp to header string
-            sprintf(ppm_header1, "\n#Frame %d captured at %ld:%ld", frame_counter, frame_timestamp.tv_sec, frame_timestamp.tv_usec);
-            write(ppm_fd, ppm_header1, strlen(ppm_header1));
-            write(ppm_fd, ppm_header2, strlen(ppm_header2));
-
-            //read dump.ppm file contents
-            while(read(dump_fd, buffer, frame_data_size))
-            {
-                //write data
-                write(ppm_fd, buffer, frame_data_size);
-                CLEAR_MEMORY(buffer);
-            }
-            //write last few bytes before the EOF
-            write(ppm_fd, buffer, frame_data_size);
-            //close files
-            close(ppm_fd);
-            close(dump_fd);
-            */ //Not adding timestamp header in .png compression
         }
 
         else
@@ -426,7 +387,7 @@ void *store_frames(void *params)
             {
                 //write data
                 write(ppm_fd, buffer, frame_data_size);
-                CLEAR_MEMORY(buffer);
+                //CLEAR_MEMORY(buffer);
             }
             //write last few bytes before the EOF
             write(ppm_fd, buffer, frame_data_size);
@@ -434,6 +395,7 @@ void *store_frames(void *params)
             close(ppm_fd);
             close(dump_fd);
         }
+
         //if this bit is set, most recent frames are already being displayed by query_frames_thread
         if(!live_camera_view)
         {
@@ -450,8 +412,10 @@ void *store_frames(void *params)
         #endif //DEBUG_MODE_ON
 
         #ifdef TIME_ANALYSIS
+        //measure end time
+        store_frames_end_time = clock_gettime(CLOCK_REALTIME, &store_frames_end_time);
         //measure elapsed time
-        store_frames_elapsed_time = elapsed_time_in_msec(&store_frames_start_time);
+        store_frames_elapsed_time = delta_time_in_msec(&store_frames_end_time, &store_frames_start_time);
 
         //measure WCET
         if(store_frames_elapsed_time > store_frames_wcet)
