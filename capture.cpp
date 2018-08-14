@@ -183,7 +183,8 @@ void *query_frames(void *cameraIdx)
         ++frame_counter;
 
         #ifdef TIME_ANALYSIS
-        query_frames_end_time = clock_gettime(CLOCK_REALTIME, &query_frames_end_time);
+        //measure end-time
+        clock_gettime(CLOCK_REALTIME, &query_frames_end_time);
         //measure elapsed time
         query_frames_elapsed_time = delta_time_in_msec(&query_frames_end_time, &query_frames_start_time);
 
@@ -413,7 +414,7 @@ void *store_frames(void *params)
 
         #ifdef TIME_ANALYSIS
         //measure end time
-        store_frames_end_time = clock_gettime(CLOCK_REALTIME, &store_frames_end_time);
+        clock_gettime(CLOCK_REALTIME, &store_frames_end_time);
         //measure elapsed time
         store_frames_elapsed_time = delta_time_in_msec(&store_frames_end_time, &store_frames_start_time);
 
