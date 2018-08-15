@@ -37,7 +37,7 @@
 //1 refers to (RT_MAX - 1) priority,
 //2 refers to (RT_MAX - 2) priority, and so on..
 #define SCHED_FIFO_MAX_PRIORITY         (0)   //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY))
-#define RT_THREAD_DISPATCHER_PRIORITY   (SCHED_FIFO_MAX_PRIORITY)// + 5) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY))
+#define RT_THREAD_DISPATCHER_PRIORITY   (SCHED_FIFO_MAX_PRIORITY)     //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY))
 #define TIMER_THREAD_PRIORITY           (SCHED_FIFO_MAX_PRIORITY + 1) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 1))
 #define QUERY_FRAMES_THREAD_PRIORITY    (SCHED_FIFO_MAX_PRIORITY + 2) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 2))
 #define STORE_FRAMES_THREAD_PRIORITY    (SCHED_FIFO_MAX_PRIORITY + 3) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 3))
@@ -62,8 +62,8 @@ typedef struct
 
 //1000 Hz
 #define APP_TIMER_INTERVAL_IN_MSEC              (1) //timer period 1ms resolution
-//25 Hz
-#define QUERY_FRAMES_INTERVAL_IN_MSEC           (50) //40 ms frame query
+//20 Hz
+#define QUERY_FRAMES_INTERVAL_IN_MSEC           (50) //@50 ms frame query
 //1 Hz
 #define DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC   (MSEC_PER_SEC) //store frames
 
