@@ -3,96 +3,127 @@
 //
 //  File name: main.c
 //
-//  Description: Manages RT Threads and timer
+//  Description: main() function, manages RT Threads
 //
 
 #include "capture.hpp"
 #include "include.h"
+#include "posix_timer.h"
 #include "utilities.h"
 #include "v4l2_capture.h"
+
+//function prototyping
+void *rt_thread_dispatcher_handler(void *args);
+static void usage(FILE *fp, int argc, char **argv);
 
 // /dev/videoX name
 char *device_name="/dev/video0";
 
-//global time variable, and a mutex to restrict access to it
-unsigned long long app_timer_counter = 1;
+//global time variable mutex to restrict access to it
 pthread_mutex_t app_timer_counter_mutex_lock;
 pthread_mutexattr_t app_timer_counter_mutex_lock_attr;
 
-//cond wait/signal for synchronization
-pthread_cond_t cond_query_frames_thread = PTHREAD_COND_INITIALIZER;
-pthread_cond_t cond_store_frames_thread = PTHREAD_COND_INITIALIZER;
-
-//function prototyping
-void *rt_thread_dispatcher_handler(void *something);
-void timer_handler(union sigval arg);
-static void usage(FILE *fp, int argc, char **argv);
-
-//global variable //updated by only once, and used across the application
-bool use_v4l2_libs = false;
+//global variable //updated once, and used across the application for sync
 bool query_frames_thread_dispatched = false;
 bool store_frames_thread_dispatched = false;
 bool timer_started = false;
 unsigned int store_frames_frequency = 1; //default value 1
 bool live_camera_view = false;
-//**********************************
-//  Funcation Name:     main
-//**********************************
+unsigned int compress_ratio = 0; //default: no compression
+unsigned int max_no_of_frames_allowed = 100;
+
+
+//------------------------------------------------------------------------------
+//  Function Name:  main
+//
+//  Parameters:     Command-line args. Enter "./main -h" for options
+//
+//  Return:         Fail/Success
+//
+//  Description:    Parse command line arguments.
+//                  Initialize syslogs
+//                  Create rt_thread_dispatcher thread, and wait for it to exit!
+//
+//------------------------------------------------------------------------------
 int main( int argc, char** argv )
 {
 
-	//user options
+    //parse user options
     while(1)
     {
         int idx;
         int user_input_option;
 
-        user_input_option = getopt(argc, argv, "d:f:hl:s:");
+        user_input_option = getopt(argc, argv, "c:d:f:hl:n:");
 
-        if (user_input_option == -1)
-                break; //exit forever loop
+        if (user_input_option == -1) break; //exit forever loop
 
-            switch (user_input_option)
+        switch (user_input_option)
+        {
+            case 'c':
+            compress_ratio = atoi(optarg);
+            //validate user input
+            if(compress_ratio<0)
             {
-
-					case 'd':
-						//ignoring device name changes for now
-						break
-
-					case 'f':
-	                    store_frames_frequency = atoi(optarg);
-						//validate the frequency parameter
-						if(store_frames_frequency < 1)
-						{
-							store_frames_frequency = 1; //reset to one
-							fprintf(stdout, "Resetting frame store frequency to 1 Hz (Min allowed)! \n");
-						}
-						else if(store_frames_frequency > 10)
-						{
-							store_frames_frequency = 10; //not suppporting more than 10Hz
-							fprintf(stdout, "Resetting frame store frequency to 10 Hz (Max allowed)! \n");
-						}
-
-	                    break;
-
-					case 'h':
-                        usage(stdout, argc, argv);
-                        return(SUCCESS);
-
-					case 'l':
-						live_camera_view = (bool)atoi(optarg);
-						break;
-
-					case 's'
-						//not supporting at the moment
-						break;
-
-                    default:
-                        usage(stderr, argc, argv);
-                        exit(EXIT_FAILURE);
-                break;
+                compress_ratio = 0; //not supporting less than 0
+                fprintf(stdout, "Resetting compression ratio to 0 (Min allowed)! \n");
             }
-        }
+            else if(compress_ratio > 9)
+            {
+                compress_ratio = 9; //not supporting more than 9
+                fprintf(stdout, "Resetting compression ratio to 9 (Max allowed)! \n");
+            }
+            //ignoring device name changes for now
+            break;
+
+            case 'd':
+            //ignoring device name changes for now
+            break;
+
+            case 'f':
+            store_frames_frequency = atoi(optarg);
+            //validate the frequency parameter
+            if(store_frames_frequency < 1)
+            {
+                store_frames_frequency = 1; //reset to one
+                fprintf(stdout, "Resetting frequency to save the frames to 1 Hz (Min allowed)! \n");
+            }
+            else if(store_frames_frequency > 10)
+            {
+                store_frames_frequency = 10; //not suppporting more than 10Hz
+                fprintf(stdout, "Resetting frequency to save the frames to 10 Hz (Max allowed)! \n");
+            }
+            break;
+
+            case 'h':
+            usage(stdout, argc, argv);
+            return(SUCCESS);
+
+            case 'l':
+            live_camera_view = (bool)atoi(optarg);
+            break;
+
+            case 'n':
+            max_no_of_frames_allowed = atoi(optarg);
+            //boundary checks
+            if(max_no_of_frames_allowed < 0)
+            {
+                max_no_of_frames_allowed = 1;
+                fprintf(stdout, "Resetting no.of frames collecting to 1 (Min allowed)!\n");
+            }
+            else if(max_no_of_frames_allowed > 6000)
+            {
+                max_no_of_frames_allowed = 6000;
+                fprintf(stdout, "Resetting no.of frames collecting to 6000 (Max allowed)!\n");
+            }
+            break;
+
+            default:
+            usage(stderr, argc, argv);
+            exit(EXIT_FAILURE);
+            break;
+        }//end of switch(user_input_option)
+    }//end of while(1)
 
     int rc = 0;
 
@@ -119,15 +150,23 @@ int main( int argc, char** argv )
     closelog();
 
     //print to terminal
-    printf("Exiting..!\n");
+    fprintf(stdout, "\n\nexiting Time-Lapse Image Acquisition application..!\nSee you soon :)\n\n");
     return 0;
-}
+} //end of main()
 
 
-//*****************************************
-//  Funcation Name:     rt_thread_dispatcher_handler
-//*****************************************
-void *rt_thread_dispatcher_handler(void *something)
+//------------------------------------------------------------------------------
+//  Function Name:  rt_thread_dispatcher_handler
+//
+//  Parameters:     args - not used
+//
+//  Return:         None
+//
+//  Description:    Initialize and start POSIX timer
+//                  Dispatch RT thtreads to query and store frames
+//
+//------------------------------------------------------------------------------
+void *rt_thread_dispatcher_handler(void *args)
 {
     int rc;
     pthread_t query_frames_thread, store_frames_thread;
@@ -166,7 +205,7 @@ void *rt_thread_dispatcher_handler(void *something)
     //initialize timer period values
     timer_period.it_interval.tv_sec = (APP_TIMER_INTERVAL_IN_MSEC / MSEC_PER_SEC);
     timer_period.it_interval.tv_nsec = (APP_TIMER_INTERVAL_IN_MSEC * NSEC_PER_MSEC);
-    timer_period.it_value.tv_sec = timer_period.it_interval.tv_sec + 2; //2 seconds delay before start
+    timer_period.it_value.tv_sec = timer_period.it_interval.tv_sec; //start time
     timer_period.it_value.tv_nsec = timer_period.it_interval.tv_nsec;
 
     //create timer
@@ -184,40 +223,32 @@ void *rt_thread_dispatcher_handler(void *something)
     if(timer_settime(timer_id, 0, &timer_period, 0)) EXIT_FAIL("timer_settime");
     timer_started = true;
 
-    if(use_v4l2_libs)
-    {
+    //using openCV APIs to qccquire individual frames from the camera
+    //initialize, start querying frames, and save a sample frame, to make sure device is working..!
+    initialize_device_use_openCV();
 
+    //create query_frames_thread
+    syslog(LOG_WARNING,"\n query_frames_thread dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
+    query_frames_thread_dispatched = true;
+    rc = pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
+    if(rc)
+    {
+        EXIT_FAIL("pthread_create");
     }
 
-    //use openCV APIs
-    else
+    //create store_frames_thread
+    syslog(LOG_WARNING,"\n store_frames_thread dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
+    store_frames_thread_dispatched = true;
+    rc = pthread_create(&store_frames_thread, &store_frames_thread_attr, store_frames, (void *)&store_frames_threadIdx);
+    if(rc)
     {
-        //initialize, start querying frames, and save a sample frame, to make sure device is working..!
-        initialize_device_use_openCV();
-        //create query_frames_thread
-        syslog(LOG_WARNING,"\n query_frames_thread dispatching with priority ==> %d <==", query_frames_thread_sched_param.sched_priority);
-        query_frames_thread_dispatched = true;
-        rc = pthread_create(&query_frames_thread, &query_frames_thread_attr, query_frames, (void *)&query_frames_threadIdx);
-        if(rc)
-        {
-            EXIT_FAIL("pthread_create");
-        }
-
-        //create store_frames_thread
-        syslog(LOG_WARNING,"\n store_frames_thread dispatching with priority ==> %d <==", store_frames_thread_sched_param.sched_priority);
-        store_frames_thread_dispatched = true;
-        rc = pthread_create(&store_frames_thread, &store_frames_thread_attr, store_frames, (void *)&store_frames_threadIdx);
-        if(rc)
-        {
-            EXIT_FAIL("pthread_create");
-        }
-        else
-
-        //wait fot query_frames_thread to exit
-        pthread_join(query_frames_thread, NULL);
-        //wait for store_frames_thread to exit
-        pthread_join(store_frames_thread, NULL);
+        EXIT_FAIL("pthread_create");
     }
+
+    //wait fot query_frames_thread to exit
+    pthread_join(query_frames_thread, NULL);
+    //wait for store_frames_thread to exit
+    pthread_join(store_frames_thread, NULL);
 
     //stop timer
     timer_period.it_interval.tv_sec = 0;
@@ -231,77 +262,34 @@ void *rt_thread_dispatcher_handler(void *something)
     syslog(LOG_WARNING," rt_thread_dispatcher exiting...");
     //exit thread
     pthread_exit(NULL);
-}
-
-//*****************************************
-//  Funcation Name:     timer_handler
-//*****************************************
-void timer_handler(union sigval arg)
-{
-    #ifdef TIMER_TIME_ANALYSIS
-    static struct timespec timer_start_time;
-    static double timer_wcet=0;
-    #endif
-
-    //accquire mutex lock on timer counter variable
-    if(pthread_mutex_lock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_lock");
-
-    #ifdef TIMER_TIME_ANALYSIS
-    clock_gettime(CLOCK_REALTIME, &timer_start_time);
-    #endif
-    //update timer counter
-    app_timer_counter += APP_TIMER_INTERVAL_IN_MSEC;
-
-    //use v4l2 library APIs
-    if(use_v4l2_libs)
-    {
-
-    }
-
-    //use openCV APIs
-    else
-    {
-        //run at 30Hz
-        if((query_frames_thread_dispatched) && ((app_timer_counter % QUERY_FRAMES_INTERVAL_IN_MSEC) == 0))
-        {
-            //signal  query_frames_thread
-            if(pthread_cond_signal(&cond_query_frames_thread)) EXIT_FAIL("pthread_cond_signal");
-        }
-
-        //run at variable frequency from 1 Hz to 10 Hz
-        if((store_frames_thread_dispatched) && ((app_timer_counter % (DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC/store_frames_frequency)) == 0))
-        {
-            //signal store_frames_thread
-            if(pthread_cond_signal(&cond_store_frames_thread)) EXIT_FAIL("pthread_cond_signal");
-        }
-
-    }
-
-    //relinquish mutex lock on timer counter variable
-    if(pthread_mutex_unlock(&app_timer_counter_mutex_lock)) EXIT_FAIL("pthread_mutex_unlock");
-
-    #ifdef TIMER_TIME_ANALYSIS
-    if(timer_wcet < elapsed_time_in_msec(&timer_start_time))
-    {
-        timer_wcet = elapsed_time_in_msec(&timer_start_time);
-        syslog(LOG_WARNING, " =====> Timer WCET:%lf", timer_wcet);
-    }
-    #endif
-}
+} //end of "rt_thread_dispatcher_handler()""
 
 
+//------------------------------------------------------------------------------
+//  Function Name:  rt_thread_dispatcher_handler
+//
+//  Parameters:     args - not used
+//
+//  Return:         None
+//
+//  Description:    Initialize and start POSIX timer
+//                  Dispatch RT thtreads to query and store frames
+//
+//------------------------------------------------------------------------------
 static void usage(FILE *fp, int argc, char **argv)
 {
     fprintf(fp,
-             "Usage: %s [options]\n\n"
+             "\nUsage: %s [options]\n\n"
              "Options:\n"
-             "-d     Video device name [default: '/dev/video0']\n"
-             "-f     Select frame store frequency [Min: 1 Hz, Max: 10Hz, Default: 1 Hz]\n"
-             "-h     Print this message\n"
-			 "-l 	 Live camera view [default: false]"
-             "-s     Number of frames to sotre [default: 1800]\n",
+             "\t-c    Compression ratio \n\t\t[Min: 0, Max: 9, Default :0]\n\n"
+             "\t-d    Video device name \n\t\t[default: '/dev/video0']\n\n"
+             "\t-f    Select frequency to save frames \n\t\t[Min: 1 Hz, Max: 10 Hz, Default: 1 Hz]\n\n"
+             "\t-h    Print this message\n\n"
+			 "\t-l    Live camera view \n\t\t[default: false]\n\n"
+             "\t-n    Number of frames to collect \n\t\t[Min: 1, Max: 6000, Default: 100]\n\n",
              argv[0]);
 }
+
 //==============================================================================
 //    End of file!
 //==============================================================================
