@@ -2,7 +2,7 @@ INCLUDE_DIRS =
 LIB_DIRS =
 CC=g++
 
-CDEFS= -DDEBUG_MODE_ON -DTIME_ANALYSIS
+CDEFS= -DTIME_ANALYSIS -DDEBUG_MODE_ON
 CFLAGS= -O0 -pg -g $(INCLUDE_DIRS) $(CDEFS)
 LIBS= -lpthread -lrt
 CPPLIBS= -L/usr/lib -lopencv_core -lopencv_flann -lopencv_video
