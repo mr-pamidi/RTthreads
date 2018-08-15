@@ -228,7 +228,7 @@ void *query_frames(void *cameraIdx)
                      "\n**************************************",
                      frame_counter, query_frames_wcet, query_frames_average_load_time, missed_deadlines);
     
-    syslog(LOG_WARNING,"");
+    syslog(LOG_WARNING," ");
     syslog(LOG_WARNING,"**************************************");
     syslog(LOG_WARNING," query_frames_thread execuiton results:");
     syslog(LOG_WARNING," no. of frames processed: %d", frame_counter);
@@ -236,7 +236,7 @@ void *query_frames(void *cameraIdx)
     syslog(LOG_WARNING," Average Execution Time: %lf", query_frames_average_load_time);
     syslog(LOG_WARNING," Missed Deadlines: %d", missed_deadlines);
     syslog(LOG_WARNING,"**************************************");
-    syslog(LOG_WARNING,"");
+    syslog(LOG_WARNING," ");
 
     #endif //TIME_ANALYSIS
 
@@ -465,7 +465,7 @@ void *store_frames(void *params)
                      "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
                      frame_counter, store_frames_wcet, store_frames_average_load_time, missed_deadlines);
 
-    syslog(LOG_WARNING,"");
+    syslog(LOG_WARNING," ");
     syslog(LOG_WARNING,"**************************************");
     syslog(LOG_WARNING," query_frames_thread execuiton results:");
     syslog(LOG_WARNING," no. of frames processed: %d", frame_counter);
@@ -473,7 +473,7 @@ void *store_frames(void *params)
     syslog(LOG_WARNING," Average Execution Time: %lf", store_frames_average_load_time);
     syslog(LOG_WARNING," Missed Deadlines: %d", missed_deadlines);
     syslog(LOG_WARNING,"**************************************");
-    syslog(LOG_WARNING,"");
+    syslog(LOG_WARNING," ");
 
     #endif //TIME_ANALYSIS
 
