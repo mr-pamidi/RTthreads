@@ -42,6 +42,11 @@
 #define QUERY_FRAMES_THREAD_PRIORITY    (SCHED_FIFO_MAX_PRIORITY + 2) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 2))
 #define STORE_FRAMES_THREAD_PRIORITY    (SCHED_FIFO_MAX_PRIORITY + 3) //used as (sched_get_priority_max(SCHED_FIFO) - (SCHED_FIFO_MAX_PRIORITY + 3))
 
+//user defined thread indexes
+typedef struct
+{
+    unsigned int threadIdx;
+}threadParams_t;
 
 //Thread indexes
 #define QUERY_FRAMES_THREAD_IDX     (0)
@@ -57,8 +62,8 @@
 
 //1000 Hz
 #define APP_TIMER_INTERVAL_IN_MSEC              (1) //timer period 1ms resolution
-//20 Hz
-#define QUERY_FRAMES_INTERVAL_IN_MSEC           (50) //50 ms frame query
+//25 Hz
+#define QUERY_FRAMES_INTERVAL_IN_MSEC           (40) //40 ms frame query
 //1 Hz
 #define DEFAULT_STORE_FRAMES_INTERVAL_IN_MSEC   (MSEC_PER_SEC) //store frames
 
@@ -69,11 +74,9 @@
 #define SUCCESS     (0)
 #define THIS_THREAD (0)
 
-//user defined thread indexes
-typedef struct
-{
-    unsigned int threadIdx;
-} threadParams_t;
+//frame resolution
+#define FRAME_HRES 640
+#define FRAME_VRES 480
 
 //as root do: "~./tegrastats" to find these CPU core numbers
 #define JETSON_TX2_ARM_CORE0    (0)
@@ -86,16 +89,17 @@ typedef struct
 //macro for exit(-1) along with debug details
 #define EXIT_FAIL(fun_name) {\
     fprintf(stderr,\
-            "\n********** Run time ERROR ************** \
-             \nFile: \"%s\"                             \
-             \nLine: %d                                 \
-             \nsymbol: %s                               \
-             \nError: %s                                \
-             \n\nExiting Application...\n\n", __FILE__, __LINE__, fun_name, strerror(errno));\
-    exit(ERROR);\
-}
+        "\n********** Run time ERROR ************** \
+        \nFile: \"%s\"                             \
+        \nLine: %d                                 \
+        \nsymbol: %s                               \
+        \nError: %s                                \
+        \n\nExiting Application...\n\n", __FILE__, __LINE__, fun_name, strerror(errno));\
+        exit(ERROR);\
+    }
 
 #define CLEAR_MEMORY(var)     memset(&(var), 0, sizeof(var))
+
 #endif //_INCLUDE_H
 
 //==============================================================================

@@ -7,8 +7,8 @@ CFLAGS= -O0 -pg -g $(INCLUDE_DIRS) $(CDEFS)
 LIBS= -lpthread -lrt
 CPPLIBS= -L/usr/lib -lopencv_core -lopencv_flann -lopencv_video
 
-HFILES= utilities.h capture.hpp v4l2_capture.h
-CFILES= main.c utilities.c v4l2_capture.c
+HFILES= capture.hpp posix_timer.h utilities.h
+CFILES= main.c posix_timer.c utilities.c
 CPPFILES= capture.cpp
 
 SRCS= ${HFILES} ${CFILES}
@@ -23,8 +23,8 @@ clean:
 distclean:
 	-rm -f *.o *.d
 
-main: main.o utilities.o capture.o v4l2_capture.o
-	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $@.o utilities.o capture.o v4l2_capture.o `pkg-config --libs opencv` $(CPPLIBS) $(LIBS)
+main: main.o capture.o posix_timer.o utilities.o
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ $@.o capture.o posix_timer.o utilities.o `pkg-config --libs opencv` $(CPPLIBS) $(LIBS)
 
 depend:
 
